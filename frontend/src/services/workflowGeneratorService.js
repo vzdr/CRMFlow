@@ -180,41 +180,45 @@ const matchDemoWorkflow = (prompt) => {
   return DEMO_WORKFLOWS.pizza;
 };
 
-// Generate workflow using AI API
+// Generate workflow using Gemini API
 const generateWithAI = async (prompt, apiKey) => {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a workflow designer. Generate a workflow as JSON with this structure:
+  const systemPrompt = `You are a workflow designer. Generate a workflow as JSON with this structure:
 {
   "nodes": [{"id": "node-1", "label": "Node Name", "type": "trigger|speak|listen|ai|logic|condition|integration"}],
   "edges": [{"sourceNodeId": "node-1", "targetNodeId": "node-2", "label": "optional"}]
 }
 Types: trigger (starts workflow), speak (text-to-speech), listen (speech-to-text), ai (AI processing), logic (data manipulation), condition (if/else), integration (API calls).
-Create 6-10 nodes with proper flow. Return ONLY valid JSON.`
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7
+Create 6-10 nodes with proper flow. Return ONLY valid JSON, no markdown, no explanation.`;
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: `${systemPrompt}\n\nUser request: ${prompt}`
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048
+      }
     })
   });
 
-  const data = await response.json();
-  const content = data.choices[0].message.content;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'Gemini API call failed');
+  }
 
-  // Parse JSON from response
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  const data = await response.json();
+  const content = data.candidates[0].content.parts[0].text;
+
+  // Parse JSON from response (strip markdown if present)
+  const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+  const jsonMatch = cleanContent.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error('Invalid response format');
 
   return JSON.parse(jsonMatch[0]);

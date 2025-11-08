@@ -55,7 +55,7 @@ const useFlowStore = create((set, get) => ({
   },
 
   advanceWorkflow: (fromNodeId) => {
-    const { edges } = get();
+    const { edges, nodes } = get();
 
     // Find the edge connected to fromNodeId
     const nextEdge = edges.find((edge) => edge.sourceNodeId === fromNodeId);
@@ -64,6 +64,15 @@ const useFlowStore = create((set, get) => ({
       set({
         activeNodeId: nextEdge.targetNodeId
       });
+
+      // Auto-advance after delay for automatic execution
+      setTimeout(() => {
+        const currentNode = nodes.find(n => n.id === nextEdge.targetNodeId);
+        if (currentNode && get().isRunning) {
+          // Auto-advance to next node
+          get().advanceWorkflow(nextEdge.targetNodeId);
+        }
+      }, 1500); // 1.5 second delay per node
     } else {
       // No more nodes to execute - workflow complete
       set({

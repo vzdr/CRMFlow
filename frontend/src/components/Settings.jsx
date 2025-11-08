@@ -3,7 +3,7 @@ import './Settings.css';
 
 const Settings = ({ onClose }) => {
   const [apiKeys, setApiKeys] = useState({
-    openai: '',
+    gemini: '',
     elevenlabs: '',
     twilio: ''
   });
@@ -36,14 +36,14 @@ const Settings = ({ onClose }) => {
 
         <div className="settings-content">
           <div className="settings-section">
-            <label>OpenAI API Key</label>
+            <label>Google Gemini API Key</label>
             <input
               type="password"
-              placeholder="sk-..."
-              value={apiKeys.openai}
-              onChange={(e) => handleChange('openai', e.target.value)}
+              placeholder="AIza..."
+              value={apiKeys.gemini}
+              onChange={(e) => handleChange('gemini', e.target.value)}
             />
-            <small>Used for: Workflow generation, AI processing</small>
+            <small>Used for: Workflow generation, AI processing (Gemini 1.5 Flash)</small>
           </div>
 
           <div className="settings-section">

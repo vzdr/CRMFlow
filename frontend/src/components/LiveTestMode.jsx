@@ -85,9 +85,9 @@ const LiveTestMode = ({ onClose }) => {
       case 'listen':
         // Listen node - process user input with AI
         addMessage('system', `Captured input: "${userInput}"`);
-        if (apiKeys.openai) {
+        if (apiKeys.gemini) {
           try {
-            const response = await callOpenAI(userInput, apiKeys.openai);
+            const response = await callGemini(userInput, apiKeys.gemini);
             addMessage('ai', response);
           } catch (error) {
             addMessage('system', `AI processing failed: ${error.message}`);
@@ -105,16 +105,16 @@ const LiveTestMode = ({ onClose }) => {
 
       case 'ai':
         // AI processing node
-        if (apiKeys.openai) {
+        if (apiKeys.gemini) {
           addMessage('system', 'Processing with AI...');
           try {
-            const response = await callOpenAI(userInput, apiKeys.openai, 'You are a helpful assistant processing workflow data.');
+            const response = await callGemini(userInput, apiKeys.gemini, 'You are a helpful assistant processing workflow data.');
             addMessage('ai', response);
           } catch (error) {
             addMessage('system', `AI error: ${error.message}`);
           }
         } else {
-          addMessage('system', 'AI node requires OpenAI API key');
+          addMessage('system', 'AI node requires Gemini API key');
         }
         setTimeout(() => advanceWorkflow(activeNodeId), 1500);
         break;
@@ -139,31 +139,32 @@ const LiveTestMode = ({ onClose }) => {
     }
   };
 
-  const callOpenAI = async (message, apiKey, systemPrompt = 'You are a helpful AI assistant in a workflow system.') => {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const callGemini = async (message, apiKey, systemPrompt = 'You are a helpful AI assistant in a workflow system.') => {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        temperature: 0.7,
-        max_tokens: 150
+        contents: [{
+          parts: [{
+            text: `${systemPrompt}\n\nUser: ${message}\n\nRespond naturally and concisely (max 150 words):`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 200
+        }
       })
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error?.message || 'API call failed');
+      throw new Error(error.error?.message || 'Gemini API call failed');
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    return data.candidates[0].content.parts[0].text;
   };
 
   const handleVoiceInput = () => {

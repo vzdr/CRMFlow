@@ -87,7 +87,7 @@ function App() {
     try {
       // Get API key from localStorage
       const saved = localStorage.getItem('crmflow_api_keys');
-      const apiKey = saved ? JSON.parse(saved).openai : null;
+      const apiKey = saved ? JSON.parse(saved).gemini : null;
 
       const { nodes, edges } = await generateWorkflow(prompt, apiKey);
       setWorkflow(nodes, edges);
@@ -95,10 +95,10 @@ function App() {
     } catch (error) {
       console.error('Failed to generate workflow:', error);
       if (error.message.includes('API key')) {
-        alert('Please set your OpenAI API key in Settings first.');
+        alert('Please set your Gemini API key in Settings first.');
         setShowSettings(true);
       } else {
-        alert('Failed to generate workflow. Please try again.');
+        alert(`Failed to generate workflow: ${error.message}`);
       }
     } finally {
       setIsGenerating(false);
