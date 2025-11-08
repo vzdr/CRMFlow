@@ -5,10 +5,10 @@ const Edge = ({ sourceNode, targetNode }) => {
   if (!sourceNode || !targetNode) return null;
 
   // Calculate handle positions
-  const sourceX = sourceNode.position.x + 180 + 6; // node width + handle offset
-  const sourceY = sourceNode.position.y + 36; // node height / 2 (approximate center)
+  const sourceX = sourceNode.position.x + 170 + 6; // node width + handle offset
+  const sourceY = sourceNode.position.y + 42; // node height / 2 (approximate center)
   const targetX = targetNode.position.x - 6;
-  const targetY = targetNode.position.y + 36;
+  const targetY = targetNode.position.y + 42;
 
   // Create a smooth curved path using cubic bezier
   const midX = (sourceX + targetX) / 2;

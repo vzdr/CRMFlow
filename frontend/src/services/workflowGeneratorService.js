@@ -96,10 +96,10 @@ const DEMO_WORKFLOWS = {
 
 // Auto-layout algorithm for positioning nodes
 const autoLayout = (nodes, edges) => {
-  const HORIZONTAL_SPACING = 300;
-  const VERTICAL_SPACING = 150;
-  const START_X = 100;
-  const START_Y = 200;
+  const HORIZONTAL_SPACING = 220;
+  const VERTICAL_SPACING = 100;
+  const START_X = 80;
+  const START_Y = 150;
 
   // Build adjacency list
   const graph = new Map();

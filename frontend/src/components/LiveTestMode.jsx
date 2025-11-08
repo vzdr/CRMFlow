@@ -153,10 +153,10 @@ const LiveTestMode = ({ onClose }) => {
                   const target = nodes.find(n => n.id === edge.targetNodeId);
                   if (!source || !target) return null;
 
-                  const x1 = (source.position.x + 90) / 2;
-                  const y1 = (source.position.y + 30) / 2;
+                  const x1 = (source.position.x + 85) / 2;
+                  const y1 = (source.position.y + 35) / 2;
                   const x2 = (target.position.x) / 2;
-                  const y2 = (target.position.y + 30) / 2;
+                  const y2 = (target.position.y + 35) / 2;
 
                   return (
                     <line
