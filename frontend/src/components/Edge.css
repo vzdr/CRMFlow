@@ -1,0 +1,21 @@
+.edge {
+  pointer-events: none;
+}
+
+.edge-path {
+  transition: stroke 0.2s ease;
+}
+
+.edge:hover .edge-path {
+  stroke: #5fb3ff;
+  stroke-width: 3;
+}
+
+.edge-arrow {
+  transition: all 0.2s ease;
+}
+
+.edge:hover .edge-arrow {
+  fill: #5fb3ff;
+  r: 5;
+}
