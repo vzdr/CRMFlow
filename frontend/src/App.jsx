@@ -1,33 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useFlowStore from './hooks/useFlowStore';
 import Canvas from './layouts/Canvas';
+import WorkflowGenerator from './components/WorkflowGenerator';
+import { generateWorkflow } from './services/workflowGeneratorService';
 import './App.css';
 
 function App() {
-  const { addNode, addEdge, startWorkflow, stopWorkflow, isRunning } = useFlowStore();
+  const { addEdge, startWorkflow, stopWorkflow, isRunning, setWorkflow } = useFlowStore();
 
   // Draft edge state for creating connections
   const [draftEdge, setDraftEdge] = useState(null);
   const [sourceNodeId, setSourceNodeId] = useState(null);
 
-  // Initialize with some sample nodes
-  useEffect(() => {
-    addNode({
-      id: 'node-1',
-      label: 'Inbound Call',
-      position: { x: 100, y: 200 }
-    });
-    addNode({
-      id: 'node-2',
-      label: 'Listen for Intent',
-      position: { x: 400, y: 200 }
-    });
-    addNode({
-      id: 'node-3',
-      label: 'Process Response',
-      position: { x: 700, y: 200 }
-    });
-  }, []);
+  // Workflow generation state
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Handle output handle mouse down - start creating edge
   const handleOutputHandleMouseDown = (nodeId, e) => {
@@ -83,6 +69,21 @@ function App() {
     }
   };
 
+  // Handle workflow generation from prompt
+  const handleGenerateWorkflow = async (prompt) => {
+    setIsGenerating(true);
+    try {
+      const { nodes, edges } = await generateWorkflow(prompt);
+      setWorkflow(nodes, edges);
+      console.log('Generated workflow:', { nodes, edges });
+    } catch (error) {
+      console.error('Failed to generate workflow:', error);
+      alert('Failed to generate workflow. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="app">
       {/* Header with controls */}
@@ -95,6 +96,12 @@ function App() {
           {isRunning ? '⏸ Stop Workflow' : '▶ Run Workflow'}
         </button>
       </header>
+
+      {/* Workflow Generator */}
+      <WorkflowGenerator
+        onGenerateWorkflow={handleGenerateWorkflow}
+        isGenerating={isGenerating}
+      />
 
       {/* Canvas */}
       <Canvas

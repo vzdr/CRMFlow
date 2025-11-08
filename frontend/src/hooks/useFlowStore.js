@@ -78,6 +78,25 @@ const useFlowStore = create((set, get) => ({
       isRunning: false,
       activeNodeId: null
     });
+  },
+
+  // Workflow management functions
+  setWorkflow: (nodes, edges) => {
+    set({
+      nodes: nodes,
+      edges: edges,
+      isRunning: false,
+      activeNodeId: null
+    });
+  },
+
+  clearWorkflow: () => {
+    set({
+      nodes: [],
+      edges: [],
+      isRunning: false,
+      activeNodeId: null
+    });
   }
 }));
 
