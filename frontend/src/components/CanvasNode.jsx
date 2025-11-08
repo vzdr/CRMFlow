@@ -11,8 +11,17 @@ const CanvasNode = ({
   onInputHandleMouseUp
 }) => {
   const nodeRef = useRef(null);
-  const { activeNodeId } = useFlowStore();
+  const { activeNodeId, completedNodeIds } = useFlowStore();
   const isActive = activeNodeId === node.id;
+  const isCompleted = completedNodeIds.includes(node.id);
+
+  // Determine node state class
+  let stateClass = 'pending';
+  if (isActive) {
+    stateClass = 'active';
+  } else if (isCompleted) {
+    stateClass = 'completed';
+  }
 
   const handleMouseDown = (e) => {
     // Only start drag if clicking on the node body, not handles
@@ -33,7 +42,7 @@ const CanvasNode = ({
   return (
     <div
       ref={nodeRef}
-      className={`canvas-node ${isActive ? 'active' : ''}`}
+      className={`canvas-node ${stateClass}`}
       style={{
         left: node.position.x,
         top: node.position.y

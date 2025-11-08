@@ -11,7 +11,7 @@ import { generateWorkflow } from './services/workflowGeneratorService';
 import './App.css';
 
 function App() {
-  const { addEdge, startWorkflow, stopWorkflow, isRunning, setWorkflow } = useFlowStore();
+  const { nodes, addEdge, startWorkflow, stopWorkflow, isRunning, setWorkflow, activeNodeId, completedNodeIds } = useFlowStore();
 
   // Draft edge state for creating connections
   const [draftEdge, setDraftEdge] = useState(null);
@@ -156,6 +156,40 @@ function App() {
           </button>
         </div>
       </header>
+
+      {/* Workflow Execution Status Bar */}
+      {isRunning && nodes.length > 0 && (
+        <div className="workflow-status-bar">
+          <div className="status-content">
+            <span className="status-icon">▶</span>
+            <span className="status-text">
+              Running: Step {completedNodeIds.length + 1} of {nodes.length}
+            </span>
+            {activeNodeId && (
+              <span className="active-node-label">
+                {nodes.find(n => n.id === activeNodeId)?.label || ''}
+              </span>
+            )}
+          </div>
+          <div className="status-progress">
+            <div
+              className="status-progress-bar"
+              style={{ width: `${((completedNodeIds.length + 1) / nodes.length) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+      {!isRunning && completedNodeIds.length > 0 && completedNodeIds.length === nodes.length && (
+        <div className="workflow-status-bar complete">
+          <div className="status-content">
+            <span className="status-icon">✓</span>
+            <span className="status-text">Workflow Complete!</span>
+            <span className="active-node-label">
+              All {nodes.length} steps executed successfully
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Workflow Generator */}
       <WorkflowGenerator

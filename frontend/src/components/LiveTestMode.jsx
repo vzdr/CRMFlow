@@ -1,41 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
 import useFlowStore from '../hooks/useFlowStore';
-import useVoiceProcessor from '../hooks/useVoiceProcessor';
+import { callGemini } from '../services/geminiService';
 import './LiveTestMode.css';
 
 const LiveTestMode = ({ onClose }) => {
-  const { nodes, edges, activeNodeId, startWorkflow, stopWorkflow, isRunning, advanceWorkflow } = useFlowStore();
-  const { startListening, stopListening, speak, isListening, isSpeaking } = useVoiceProcessor();
-
+  const { nodes, edges, activeNodeId, startWorkflow, stopWorkflow, isRunning, advanceWorkflow, completedNodeIds } = useFlowStore();
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
-  const [isTestRunning, setIsTestRunning] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    // Add welcome message
+    // Welcome message
     setMessages([{
       id: 'welcome',
       type: 'system',
-      content: 'Live Test Mode activated! Click "Start Test" to begin.',
+      content: 'Live Test Mode - Click "Start Test" to begin workflow execution',
       timestamp: new Date()
     }]);
   }, []);
 
   useEffect(() => {
-    // Scroll to bottom when new messages arrive
+    // Auto-scroll to bottom
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // When workflow starts or advances, handle the active node
   useEffect(() => {
-    // Track active node changes
-    if (activeNodeId && isTestRunning) {
-      const activeNode = nodes.find(n => n.id === activeNodeId);
-      if (activeNode) {
-        addMessage('system', `Executing: ${activeNode.label}`);
-      }
+    if (activeNodeId && isRunning && nodes.length > 0) {
+      handleActiveNode();
     }
-  }, [activeNodeId, isTestRunning, nodes]);
+  }, [activeNodeId, isRunning]);
 
   const addMessage = (type, content) => {
     setMessages(prev => [...prev, {
@@ -47,164 +42,213 @@ const LiveTestMode = ({ onClose }) => {
   };
 
   const handleStartTest = () => {
-    setIsTestRunning(true);
+    if (nodes.length === 0) {
+      alert('Please load a workflow first (use Templates or Generate from Prompt)');
+      return;
+    }
+
+    setMessages([{
+      id: 'start',
+      type: 'system',
+      content: `Starting workflow execution... (${nodes.length} nodes)`,
+      timestamp: new Date()
+    }]);
+
     startWorkflow();
-    addMessage('system', 'Test started! Workflow is now running.');
   };
 
   const handleStopTest = () => {
-    setIsTestRunning(false);
     stopWorkflow();
-    stopListening();
-    addMessage('system', 'Test stopped.');
+    addMessage('system', 'Workflow stopped');
+    setIsProcessing(false);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputValue.trim() || !isTestRunning) return;
-
-    const userMessage = inputValue.trim();
-    addMessage('user', userMessage);
-    setInputValue('');
-
-    // Process through active node
-    await processUserInput(userMessage);
-  };
-
-  const processUserInput = async (userInput) => {
-    if (!activeNodeId) return;
+  const handleActiveNode = async () => {
+    if (isProcessing) return; // Prevent duplicate processing
 
     const activeNode = nodes.find(n => n.id === activeNodeId);
     if (!activeNode) return;
 
-    // Get API keys from localStorage
-    const saved = localStorage.getItem('crmflow_api_keys');
-    const apiKeys = saved ? JSON.parse(saved) : {};
+    setIsProcessing(true);
 
-    // Process based on node type
-    switch (activeNode.type) {
-      case 'listen':
-        // Listen node - process user input with AI
-        addMessage('system', `Captured input: "${userInput}"`);
-        if (apiKeys.gemini) {
-          try {
-            const response = await callGemini(userInput, apiKeys.gemini);
-            addMessage('ai', response);
-          } catch (error) {
-            addMessage('system', `AI processing failed: ${error.message}`);
-          }
-        }
-        // Auto-advance after processing
-        setTimeout(() => advanceWorkflow(activeNodeId), 1000);
+    try {
+      await executeNode(activeNode);
+    } catch (error) {
+      console.error('Node execution error:', error);
+      addMessage('system', `Error executing ${activeNode.label}: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const executeNode = async (node) => {
+    console.log('Executing node:', node);
+
+    // Add system message showing which node is executing
+    addMessage('system', `[${node.type.toUpperCase()}] ${node.label}`);
+
+    switch (node.type) {
+      case 'trigger':
+        // Trigger nodes just start the workflow
+        await delay(500);
+        addMessage('system', 'Workflow triggered');
+        advanceWorkflow(node.id);
         break;
 
       case 'speak':
-        // Speak node - output predefined message
-        addMessage('ai', activeNode.label);
-        setTimeout(() => advanceWorkflow(activeNodeId), 1000);
+        // AI speaks to the user
+        await delay(800);
+        try {
+          const response = await callGemini(
+            `Say this to the user in a natural, conversational way: "${node.label}"`,
+            {
+              systemPrompt: 'You are speaking to a user. Be friendly and natural. Keep it brief (1-2 sentences).',
+              maxTokens: 150
+            }
+          );
+          addMessage('ai', response);
+        } catch (error) {
+          // Fallback if Gemini fails
+          addMessage('ai', node.label);
+        }
+        advanceWorkflow(node.id);
+        break;
+
+      case 'listen':
+        // Wait for user input - don't auto-advance
+        addMessage('system', 'Waiting for your input...');
+        // Don't call advanceWorkflow - wait for user to type
         break;
 
       case 'ai':
-        // AI processing node
-        if (apiKeys.gemini) {
-          addMessage('system', 'Processing with AI...');
-          try {
-            const response = await callGemini(userInput, apiKeys.gemini, 'You are a helpful assistant processing workflow data.');
-            addMessage('ai', response);
-          } catch (error) {
-            addMessage('system', `AI error: ${error.message}`);
-          }
-        } else {
-          addMessage('system', 'AI node requires Gemini API key');
-        }
-        setTimeout(() => advanceWorkflow(activeNodeId), 1500);
+        // AI processing - wait for user input or use context
+        addMessage('system', 'AI is ready to respond. Type your message...');
+        // Don't auto-advance
         break;
 
       case 'logic':
-      case 'integration':
-      case 'condition':
-        // Logic/Integration nodes - simulate processing
-        addMessage('system', `Executing: ${activeNode.label}`);
-        setTimeout(() => advanceWorkflow(activeNodeId), 800);
+        // Perform logic operation
+        await delay(1000);
+        addMessage('system', `Processing: ${node.label}...`);
+        addMessage('system', `✓ ${node.label} completed`);
+        advanceWorkflow(node.id);
         break;
 
-      case 'trigger':
-        // Trigger node - just advance
-        setTimeout(() => advanceWorkflow(activeNodeId), 500);
+      case 'condition':
+        // Evaluate condition (simplified - take first edge)
+        await delay(800);
+        addMessage('system', `Evaluating: ${node.label}...`);
+        const conditionResult = Math.random() > 0.5 ? 'true' : 'false';
+        addMessage('system', `Condition result: ${conditionResult}`);
+        advanceWorkflow(node.id);
+        break;
+
+      case 'integration':
+        // Simulate API call
+        await delay(1200);
+        addMessage('system', `Calling API: ${node.label}...`);
+        addMessage('system', `✓ ${node.label} completed successfully`);
+        advanceWorkflow(node.id);
         break;
 
       default:
-        addMessage('system', `Node type '${activeNode.type}' processed`);
-        setTimeout(() => advanceWorkflow(activeNodeId), 1000);
+        // Unknown node type
+        await delay(500);
+        addMessage('system', `Executed: ${node.label}`);
+        advanceWorkflow(node.id);
         break;
     }
   };
 
-  const callGemini = async (message, apiKey, systemPrompt = 'You are a helpful AI assistant in a workflow system.') => {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `${systemPrompt}\n\nUser: ${message}\n\nRespond naturally and concisely (max 150 words):`
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 200
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || !isRunning) return;
+
+    const userMessage = inputValue.trim();
+    addMessage('user', userMessage);
+    setInputValue('');
+    setIsProcessing(true);
+
+    try {
+      // Get active node
+      const activeNode = nodes.find(n => n.id === activeNodeId);
+      if (!activeNode) {
+        addMessage('system', 'No active node to process input');
+        setIsProcessing(false);
+        return;
+      }
+
+      if (activeNode.type === 'listen' || activeNode.type === 'ai') {
+        // Process user input with Gemini
+        addMessage('system', 'Processing your input with AI...');
+
+        try {
+          // Build context from conversation
+          const conversationContext = messages
+            .filter(m => m.type === 'user' || m.type === 'ai')
+            .slice(-5) // Last 5 messages
+            .map(m => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+            .join('\n');
+
+          const systemPrompt = `You are helping process this step in a workflow: "${activeNode.label}"
+
+Previous conversation:
+${conversationContext}
+
+Respond naturally and helpfully to the user's message. Keep responses concise (2-3 sentences max).`;
+
+          const aiResponse = await callGemini(userMessage, {
+            systemPrompt,
+            includeKnowledge: true,
+            includePersonality: true,
+            maxTokens: 300
+          });
+
+          addMessage('ai', aiResponse);
+
+          // Auto-advance after AI processes
+          await delay(1000);
+          advanceWorkflow(activeNode.id);
+        } catch (error) {
+          addMessage('system', `AI error: ${error.message}`);
+          // Still advance even on error
+          advanceWorkflow(activeNode.id);
         }
-      })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error?.message || 'Gemini API call failed');
+      } else {
+        // Not a listen/ai node, just acknowledge
+        addMessage('system', 'Input received');
+      }
+    } finally {
+      setIsProcessing(false);
     }
-
-    const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
   };
 
-  const handleVoiceInput = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      addMessage('system', 'Listening... Speak now.');
-      startListening(
-        (interim, final) => {
-          // Real-time transcript
-        },
-        async (finalTranscript) => {
-          if (finalTranscript) {
-            addMessage('user', finalTranscript);
-            // Process through workflow
-            await processUserInput(finalTranscript);
-          }
-        }
-      );
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
+
+  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
   const getNodeStatusColor = (nodeId) => {
-    if (nodeId === activeNodeId && isTestRunning) {
-      return '#4aff6b'; // Green for active
+    if (nodeId === activeNodeId && isRunning) {
+      return '#00ff00'; // Green for active
+    } else if (completedNodeIds.includes(nodeId)) {
+      return '#4a9eff'; // Blue for completed
     }
-    return null;
+    return '#444'; // Gray for pending
   };
 
   return (
     <div className="live-test-mode">
-      {/* Split Screen Layout */}
       <div className="test-split-container">
-
-        {/* Left Side - Canvas View */}
+        {/* Left Side - Mini Canvas */}
         <div className="test-canvas-side">
           <div className="test-canvas-header">
-            <h3>Workflow Canvas</h3>
+            <h3>Workflow Progress</h3>
             <div className="test-controls">
-              {!isTestRunning ? (
+              {!isRunning ? (
                 <button className="test-start-btn" onClick={handleStartTest}>
                   Start Test
                 </button>
@@ -214,77 +258,105 @@ const LiveTestMode = ({ onClose }) => {
                 </button>
               )}
               <button className="test-close-btn" onClick={onClose}>
-                Close Test Mode
+                Close
               </button>
             </div>
           </div>
 
+          {/* Mini Canvas View */}
           <div className="test-canvas-view">
-            <div className="mini-canvas">
-              {/* Render nodes in miniature */}
-              {nodes.map(node => (
+            <svg className="mini-canvas-svg" width="100%" height="100%">
+              {/* Render edges */}
+              {edges.map((edge) => {
+                const sourceNode = nodes.find(n => n.id === edge.sourceNodeId);
+                const targetNode = nodes.find(n => n.id === edge.targetNodeId);
+
+                if (!sourceNode || !targetNode) return null;
+
+                const scale = 0.5; // Scale down for mini view
+                const sourceX = sourceNode.position.x * scale + 85;
+                const sourceY = sourceNode.position.y * scale + 35;
+                const targetX = targetNode.position.x * scale + 85;
+                const targetY = targetNode.position.y * scale + 35;
+
+                return (
+                  <line
+                    key={edge.id}
+                    x1={sourceX}
+                    y1={sourceY}
+                    x2={targetX}
+                    y2={targetY}
+                    stroke={getNodeStatusColor(edge.sourceNodeId)}
+                    strokeWidth="2"
+                  />
+                );
+              })}
+            </svg>
+
+            {/* Render nodes */}
+            {nodes.map((node) => {
+              const scale = 0.5;
+              const color = getNodeStatusColor(node.id);
+              const isActive = node.id === activeNodeId && isRunning;
+
+              return (
                 <div
                   key={node.id}
-                  className={`mini-node ${node.id === activeNodeId && isTestRunning ? 'active-test-node' : ''}`}
+                  className="mini-node"
                   style={{
-                    left: node.position.x / 2,
-                    top: node.position.y / 2,
-                    borderColor: getNodeStatusColor(node.id) || '#444'
+                    left: node.position.x * scale,
+                    top: node.position.y * scale,
+                    borderColor: color,
+                    backgroundColor: isActive ? 'rgba(0, 255, 0, 0.1)' : 'transparent',
+                    boxShadow: isActive ? '0 0 10px rgba(0, 255, 0, 0.5)' : 'none'
                   }}
                 >
                   <div className="mini-node-label">{node.label}</div>
-                  {node.id === activeNodeId && isTestRunning && (
-                    <div className="active-indicator"></div>
-                  )}
+                  {isActive && <div className="mini-active-indicator">●</div>}
                 </div>
-              ))}
+              );
+            })}
+          </div>
 
-              {/* Render edges */}
-              <svg className="mini-edges">
-                {edges.map(edge => {
-                  const source = nodes.find(n => n.id === edge.sourceNodeId);
-                  const target = nodes.find(n => n.id === edge.targetNodeId);
-                  if (!source || !target) return null;
-
-                  const x1 = (source.position.x + 85) / 2;
-                  const y1 = (source.position.y + 35) / 2;
-                  const x2 = (target.position.x) / 2;
-                  const y2 = (target.position.y + 35) / 2;
-
-                  return (
-                    <line
-                      key={edge.id}
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      stroke="#4a9eff"
-                      strokeWidth="1"
-                    />
-                  );
-                })}
-              </svg>
-            </div>
+          {/* Workflow Status */}
+          <div className="test-workflow-status">
+            {isRunning && (
+              <div className="status-running">
+                <span className="status-dot"></span>
+                Running: Step {completedNodeIds.length + 1} of {nodes.length}
+              </div>
+            )}
+            {!isRunning && completedNodeIds.length > 0 && (
+              <div className="status-complete">
+                ✓ Complete: {completedNodeIds.length} steps executed
+              </div>
+            )}
+            {!isRunning && completedNodeIds.length === 0 && (
+              <div className="status-idle">
+                Ready to test
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right Side - Chat Interface */}
         <div className="test-chat-side">
           <div className="test-chat-header">
-            <h3>Test Interface</h3>
-            <div className="test-status">
-              {isTestRunning && <span className="status-running">Testing</span>}
-              {isListening && <span className="status-listening">Listening</span>}
-              {isSpeaking && <span className="status-speaking">Speaking</span>}
-            </div>
+            <h3>Test Conversation</h3>
+            {isProcessing && (
+              <span className="processing-indicator">Processing...</span>
+            )}
           </div>
 
           <div className="test-chat-messages">
-            {messages.map(msg => (
-              <div key={msg.id} className={`test-message ${msg.type}`}>
-                <div className="message-content">{msg.content}</div>
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`test-message test-message-${message.type}`}
+              >
+                <div className="message-content">{message.content}</div>
                 <div className="message-time">
-                  {msg.timestamp.toLocaleTimeString()}
+                  {message.timestamp.toLocaleTimeString()}
                 </div>
               </div>
             ))}
@@ -294,23 +366,16 @@ const LiveTestMode = ({ onClose }) => {
           <div className="test-chat-input">
             <input
               type="text"
-              placeholder="Type a message to test..."
+              placeholder={isRunning ? "Type your message..." : "Start the test first..."}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-              disabled={!isTestRunning}
+              onKeyDown={handleKeyDown}
+              disabled={!isRunning || isProcessing}
             />
-            <button
-              className="voice-input-btn"
-              onClick={handleVoiceInput}
-              disabled={!isTestRunning}
-            >
-              {isListening ? 'Stop' : 'Voice'}
-            </button>
             <button
               className="send-btn"
               onClick={handleSendMessage}
-              disabled={!isTestRunning || !inputValue.trim()}
+              disabled={!isRunning || !inputValue.trim() || isProcessing}
             >
               Send
             </button>

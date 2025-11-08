@@ -96,3 +96,88 @@
     box-shadow: 0 2px 12px rgba(255, 107, 107, 0.6);
   }
 }
+
+/* Workflow Execution Status Bar */
+.workflow-status-bar {
+  background: #2a2a2a;
+  border-bottom: 2px solid #00ff00;
+  padding: 12px 24px;
+  box-shadow: 0 2px 8px rgba(0, 255, 0, 0.2);
+  z-index: 99;
+  animation: slideDown 0.3s ease;
+}
+
+.workflow-status-bar.complete {
+  border-bottom-color: #4a9eff;
+  box-shadow: 0 2px 8px rgba(74, 158, 255, 0.3);
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.status-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.status-icon {
+  font-size: 16px;
+  color: #00ff00;
+  animation: pulse-icon 1.5s infinite;
+}
+
+.workflow-status-bar.complete .status-icon {
+  color: #4a9eff;
+  animation: none;
+}
+
+@keyframes pulse-icon {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.status-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #00ff00;
+}
+
+.workflow-status-bar.complete .status-text {
+  color: #4a9eff;
+}
+
+.active-node-label {
+  font-size: 13px;
+  color: #888;
+  font-style: italic;
+  margin-left: 8px;
+}
+
+.status-progress {
+  height: 4px;
+  background: #333;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.status-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #00ff00, #00cc00);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+}

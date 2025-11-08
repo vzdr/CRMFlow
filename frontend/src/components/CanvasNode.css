@@ -9,7 +9,7 @@
   padding: 14px 18px;
   cursor: move;
   user-select: none;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
@@ -18,19 +18,41 @@
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
+/* ACTIVE NODE - Currently Executing (GREEN) */
 .canvas-node.active {
-  border-color: #4a9eff;
-  box-shadow: 0 0 20px rgba(74, 158, 255, 0.5), 0 6px 12px rgba(0, 0, 0, 0.4);
-  animation: pulse 2s infinite;
+  border: 3px solid #00ff00;
+  background: #2a3a2a;
+  box-shadow: 0 0 25px rgba(0, 255, 0, 0.6), 0 6px 12px rgba(0, 0, 0, 0.4);
+  animation: pulseGreen 1.5s infinite;
 }
 
-@keyframes pulse {
+@keyframes pulseGreen {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(74, 158, 255, 0.5), 0 6px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 25px rgba(0, 255, 0, 0.6), 0 6px 12px rgba(0, 0, 0, 0.4);
+    transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 30px rgba(74, 158, 255, 0.8), 0 6px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 35px rgba(0, 255, 0, 0.9), 0 8px 16px rgba(0, 0, 0, 0.5);
+    transform: scale(1.02);
   }
+}
+
+/* COMPLETED NODE - Already Executed (BLUE) */
+.canvas-node.completed {
+  border: 2px solid #4a9eff;
+  background: #2a2f3a;
+  opacity: 0.85;
+  box-shadow: 0 4px 8px rgba(74, 158, 255, 0.3);
+}
+
+.canvas-node.completed .node-label {
+  color: #4a9eff;
+}
+
+/* PENDING NODE - Not Yet Executed (Gray - default) */
+.canvas-node.pending {
+  border: 2px solid #444;
+  background: #2a2a2a;
 }
 
 .node-content {

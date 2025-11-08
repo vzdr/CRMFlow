@@ -6,6 +6,7 @@ const useFlowStore = create((set, get) => ({
   edges: [],
   isRunning: false,
   activeNodeId: null,
+  completedNodeIds: [], // Track which nodes have been executed
 
   // Node management functions
   addNode: (node) => {
@@ -43,26 +44,32 @@ const useFlowStore = create((set, get) => ({
     if (firstNode) {
       set({
         isRunning: true,
-        activeNodeId: firstNode.id
+        activeNodeId: firstNode.id,
+        completedNodeIds: [] // Reset completed nodes
       });
     } else if (nodes.length > 0) {
       // Fallback: use the first node in the array
       set({
         isRunning: true,
-        activeNodeId: nodes[0].id
+        activeNodeId: nodes[0].id,
+        completedNodeIds: []
       });
     }
   },
 
   advanceWorkflow: (fromNodeId) => {
-    const { edges, nodes } = get();
+    const { edges, nodes, completedNodeIds } = get();
+
+    // Mark current node as completed
+    const updatedCompletedNodes = [...completedNodeIds, fromNodeId];
 
     // Find the edge connected to fromNodeId
     const nextEdge = edges.find((edge) => edge.sourceNodeId === fromNodeId);
 
     if (nextEdge) {
       set({
-        activeNodeId: nextEdge.targetNodeId
+        activeNodeId: nextEdge.targetNodeId,
+        completedNodeIds: updatedCompletedNodes
       });
 
       // Auto-advance after delay for automatic execution
@@ -72,12 +79,13 @@ const useFlowStore = create((set, get) => ({
           // Auto-advance to next node
           get().advanceWorkflow(nextEdge.targetNodeId);
         }
-      }, 1500); // 1.5 second delay per node
+      }, 2000); // 2 second delay per node for visibility
     } else {
       // No more nodes to execute - workflow complete
       set({
         isRunning: false,
-        activeNodeId: null
+        activeNodeId: null,
+        completedNodeIds: updatedCompletedNodes // Mark last node as completed
       });
     }
   },
@@ -85,7 +93,8 @@ const useFlowStore = create((set, get) => ({
   stopWorkflow: () => {
     set({
       isRunning: false,
-      activeNodeId: null
+      activeNodeId: null,
+      completedNodeIds: []
     });
   },
 
@@ -104,7 +113,8 @@ const useFlowStore = create((set, get) => ({
       nodes: [],
       edges: [],
       isRunning: false,
-      activeNodeId: null
+      activeNodeId: null,
+      completedNodeIds: []
     });
   }
 }));
