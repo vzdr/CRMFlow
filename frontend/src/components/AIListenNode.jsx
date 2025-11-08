@@ -144,15 +144,15 @@ const AIListenNode = ({
   const getStatusIndicator = () => {
     switch (status) {
       case 'listening':
-        return '🎤 Listening...';
+        return 'Listening...';
       case 'processing':
-        return '🤔 Processing...';
+        return 'Processing...';
       case 'speaking':
-        return '🔊 Speaking...';
+        return 'Speaking...';
       case 'complete':
-        return '✅ Complete';
+        return 'Complete';
       case 'error':
-        return '❌ Error';
+        return 'Error';
       default:
         return '';
     }

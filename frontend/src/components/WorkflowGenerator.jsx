@@ -32,12 +32,12 @@ const WorkflowGenerator = ({ onGenerateWorkflow, isGenerating }) => {
           className="generator-toggle"
           onClick={() => setIsExpanded(true)}
         >
-          ✨ Generate Workflow from Prompt
+          Generate Workflow from Prompt
         </button>
       ) : (
         <div className="generator-panel">
           <div className="generator-header">
-            <h3>✨ Generate Workflow from Description</h3>
+            <h3>Generate Workflow from Description</h3>
             <button
               className="close-button"
               onClick={() => setIsExpanded(false)}
@@ -69,10 +69,7 @@ const WorkflowGenerator = ({ onGenerateWorkflow, isGenerating }) => {
                   Generating...
                 </>
               ) : (
-                <>
-                  <span className="magic-icon">✨</span>
-                  Generate Workflow
-                </>
+                'Generate Workflow'
               )}
             </button>
             <span className="hint">Ctrl+Enter to generate</span>

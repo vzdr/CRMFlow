@@ -1,13 +1,90 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './IntelligenceHub.css';
 
 const IntelligenceHub = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState('knowledge');
-  const [knowledgeItems, setKnowledgeItems] = useState([
-    { id: 1, type: 'pdf', name: 'Product Catalog 2024.pdf', enabled: true },
-    { id: 2, type: 'faq', name: 'Website FAQ', enabled: true },
-    { id: 3, type: 'manual', name: 'Pricing Information', enabled: false }
-  ]);
+
+  // Load saved data from localStorage
+  const loadSavedData = () => {
+    const saved = localStorage.getItem('crmflow_intelligence_hub');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return getDefaultData();
+      }
+    }
+    return getDefaultData();
+  };
+
+  const getDefaultData = () => ({
+    knowledgeItems: [
+      { id: 1, type: 'pdf', name: 'Product Catalog 2024.pdf', enabled: true },
+      { id: 2, type: 'faq', name: 'Website FAQ', enabled: true },
+      { id: 3, type: 'manual', name: 'Pricing Information', enabled: false }
+    ],
+    personality: 'You are a helpful and professional AI assistant for CRMFlow. You provide clear, concise answers and always aim to help customers efficiently.',
+    voiceRecorded: false
+  });
+
+  const [hubData, setHubData] = useState(loadSavedData());
+  const [knowledgeItems, setKnowledgeItems] = useState(hubData.knowledgeItems);
+  const [personality, setPersonality] = useState(hubData.personality);
+  const [isRecording, setIsRecording] = useState(false);
+
+  // Save to localStorage whenever data changes
+  useEffect(() => {
+    const dataToSave = {
+      knowledgeItems,
+      personality,
+      voiceRecorded: hubData.voiceRecorded
+    };
+    localStorage.setItem('crmflow_intelligence_hub', JSON.stringify(dataToSave));
+  }, [knowledgeItems, personality, hubData.voiceRecorded]);
+
+  const handleToggleKnowledge = (itemId) => {
+    setKnowledgeItems(prev => prev.map(item =>
+      item.id === itemId ? { ...item, enabled: !item.enabled } : item
+    ));
+  };
+
+  const handleSavePersonality = () => {
+    alert('Personality saved successfully! This will be used for all AI interactions.');
+  };
+
+  const handleAddKnowledge = (type) => {
+    const newItem = {
+      id: Date.now(),
+      type: type,
+      name: `New ${type.toUpperCase()} Item`,
+      enabled: true
+    };
+    setKnowledgeItems(prev => [...prev, newItem]);
+    alert(`${type.toUpperCase()} knowledge source added. In production, this would upload files or scrape websites.`);
+  };
+
+  const handleVoiceRecording = async () => {
+    if (isRecording) {
+      setIsRecording(false);
+      // Get API keys
+      const saved = localStorage.getItem('crmflow_api_keys');
+      const apiKeys = saved ? JSON.parse(saved) : {};
+
+      if (!apiKeys.elevenlabs) {
+        alert('Please set your ElevenLabs API key in Settings to enable voice cloning.');
+        return;
+      }
+
+      setHubData(prev => ({ ...prev, voiceRecorded: true }));
+      alert('Voice recorded! In production, this would be sent to ElevenLabs for voice cloning.');
+    } else {
+      setIsRecording(true);
+      // Simulate 30 second recording
+      setTimeout(() => {
+        setIsRecording(false);
+      }, 30000);
+    }
+  };
 
   return (
     <div className="intelligence-hub-overlay">
@@ -15,7 +92,7 @@ const IntelligenceHub = ({ onClose }) => {
         {/* Header */}
         <div className="hub-header">
           <div>
-            <h2>🧠 Intelligence Hub</h2>
+            <h2>Intelligence Hub</h2>
             <p>Personalize your AI's knowledge and personality</p>
           </div>
           <button className="close-hub-btn" onClick={onClose}>✕</button>
@@ -27,25 +104,25 @@ const IntelligenceHub = ({ onClose }) => {
             className={`hub-tab ${activeTab === 'knowledge' ? 'active' : ''}`}
             onClick={() => setActiveTab('knowledge')}
           >
-            📚 Knowledge Base
+            Knowledge Base
           </button>
           <button
             className={`hub-tab ${activeTab === 'personality' ? 'active' : ''}`}
             onClick={() => setActiveTab('personality')}
           >
-            🎭 Personality
+            Personality
           </button>
           <button
             className={`hub-tab ${activeTab === 'voice' ? 'active' : ''}`}
             onClick={() => setActiveTab('voice')}
           >
-            🎤 Voice Lab
+            Voice Lab
           </button>
           <button
             className={`hub-tab ${activeTab === 'analytics' ? 'active' : ''}`}
             onClick={() => setActiveTab('analytics')}
           >
-            📊 Analytics
+            Analytics
           </button>
         </div>
 
@@ -54,9 +131,9 @@ const IntelligenceHub = ({ onClose }) => {
           {activeTab === 'knowledge' && (
             <div className="knowledge-panel">
               <div className="panel-actions">
-                <button className="add-knowledge-btn">+ Upload PDF</button>
-                <button className="add-knowledge-btn">+ Scrape Website</button>
-                <button className="add-knowledge-btn">+ Add Manual Q&A</button>
+                <button className="add-knowledge-btn" onClick={() => handleAddKnowledge('pdf')}>+ Upload PDF</button>
+                <button className="add-knowledge-btn" onClick={() => handleAddKnowledge('faq')}>+ Scrape Website</button>
+                <button className="add-knowledge-btn" onClick={() => handleAddKnowledge('manual')}>+ Add Manual Q&A</button>
               </div>
 
               <div className="knowledge-list">
@@ -64,7 +141,7 @@ const IntelligenceHub = ({ onClose }) => {
                   <div key={item.id} className="knowledge-item">
                     <div className="item-info">
                       <span className="item-icon">
-                        {item.type === 'pdf' ? '📄' : item.type === 'faq' ? '🌐' : '✏️'}
+                        {item.type === 'pdf' ? 'PDF' : item.type === 'faq' ? 'FAQ' : 'Manual'}
                       </span>
                       <span className="item-name">{item.name}</span>
                     </div>
@@ -72,7 +149,7 @@ const IntelligenceHub = ({ onClose }) => {
                       <input
                         type="checkbox"
                         checked={item.enabled}
-                        onChange={() => {}}
+                        onChange={() => handleToggleKnowledge(item.id)}
                       />
                       <span className="toggle-slider"></span>
                     </label>
@@ -92,22 +169,28 @@ const IntelligenceHub = ({ onClose }) => {
                 className="personality-input"
                 placeholder="Example: You are 'BistroBot,' the friendly and slightly witty assistant for our restaurant. You love to recommend the daily specials. You never use emojis."
                 rows={10}
-                defaultValue="You are a helpful and professional AI assistant for CRMFlow. You provide clear, concise answers and always aim to help customers efficiently."
+                value={personality}
+                onChange={(e) => setPersonality(e.target.value)}
               />
-              <button className="save-btn">Save Personality</button>
+              <button className="save-btn" onClick={handleSavePersonality}>Save Personality</button>
             </div>
           )}
 
           {activeTab === 'voice' && (
             <div className="voice-panel">
               <div className="voice-cloning-section">
-                <h3>🎙️ Clone Your Voice</h3>
+                <h3>Clone Your Voice</h3>
                 <p className="panel-description">
                   Record 30 seconds of your voice to create a custom AI voice
                 </p>
                 <div className="voice-recorder">
                   <div className="record-button">
-                    <button className="record-btn">● Record</button>
+                    <button
+                      className="record-btn"
+                      onClick={handleVoiceRecording}
+                    >
+                      {isRecording ? '⏹ Stop Recording' : '● Record'}
+                    </button>
                   </div>
                   <div className="recording-instructions">
                     Read this script clearly:
@@ -124,12 +207,12 @@ const IntelligenceHub = ({ onClose }) => {
                 <h3>Voice Library</h3>
                 <div className="voice-list">
                   <div className="voice-item">
-                    <span>🔊 Default Voice</span>
+                    <span>Default Voice</span>
                     <button className="preview-btn">Preview</button>
                   </div>
                   <div className="voice-item">
-                    <span>🎤 Custom Voice (Not recorded)</span>
-                    <button className="preview-btn" disabled>Preview</button>
+                    <span>Custom Voice {hubData.voiceRecorded ? '(Recorded)' : '(Not recorded)'}</span>
+                    <button className="preview-btn" disabled={!hubData.voiceRecorded}>Preview</button>
                   </div>
                 </div>
               </div>
@@ -140,32 +223,32 @@ const IntelligenceHub = ({ onClose }) => {
             <div className="analytics-panel">
               <div className="analytics-grid">
                 <div className="analytics-card">
-                  <h4>📞 Total Executions</h4>
+                  <h4>Total Executions</h4>
                   <div className="analytics-value">247</div>
                   <div className="analytics-trend">+12% this week</div>
                 </div>
 
                 <div className="analytics-card">
-                  <h4>⏱️ Avg Duration</h4>
+                  <h4>Avg Duration</h4>
                   <div className="analytics-value">2m 34s</div>
                   <div className="analytics-trend">-8% faster</div>
                 </div>
 
                 <div className="analytics-card">
-                  <h4>😊 Sentiment</h4>
+                  <h4>Sentiment</h4>
                   <div className="analytics-value">78%</div>
                   <div className="analytics-trend positive">Positive</div>
                 </div>
 
                 <div className="analytics-card">
-                  <h4>✅ Success Rate</h4>
+                  <h4>Success Rate</h4>
                   <div className="analytics-value">94%</div>
                   <div className="analytics-trend">+3% improvement</div>
                 </div>
               </div>
 
               <div className="top-questions">
-                <h3>🔥 Top 5 Customer Questions</h3>
+                <h3>Top 5 Customer Questions</h3>
                 <div className="question-list">
                   <div className="question-item">1. What are your business hours?</div>
                   <div className="question-item">2. How much does delivery cost?</div>
@@ -176,7 +259,7 @@ const IntelligenceHub = ({ onClose }) => {
               </div>
 
               <div className="stuck-points">
-                <h3>⚠️ Top "Stuck" Points</h3>
+                <h3>Top "Stuck" Points</h3>
                 <div className="stuck-list">
                   <div className="stuck-item">
                     <span>Get Delivery Address</span>

@@ -1,7 +1,5 @@
 // Workflow Generator Service
-// Generates workflow nodes and edges from natural language prompts
-
-const DEMO_MODE = true; // Set to false when you have an API key
+// Generates workflow nodes and edges from natural language prompts using OpenAI API
 
 // Demo workflow templates for testing without API
 const DEMO_WORKFLOWS = {
@@ -224,20 +222,22 @@ Create 6-10 nodes with proper flow. Return ONLY valid JSON.`
 
 // Main generation function
 export const generateWorkflow = async (prompt, apiKey = null) => {
-  // Simulate API delay for realism
-  await new Promise(resolve => setTimeout(resolve, 1500));
-
   let workflow;
 
-  if (DEMO_MODE || !apiKey) {
-    // Use demo mode
+  if (!apiKey) {
+    // No API key provided - use demo mode
+    console.log('No API key provided, using demo workflow');
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate delay
     workflow = matchDemoWorkflow(prompt);
   } else {
-    // Use real AI API
+    // Use real OpenAI API
     try {
+      console.log('Generating workflow with OpenAI API...');
       workflow = await generateWithAI(prompt, apiKey);
+      console.log('Successfully generated workflow with AI');
     } catch (error) {
-      console.error('AI generation failed, using demo:', error);
+      console.error('AI generation failed, using demo fallback:', error);
+      await new Promise(resolve => setTimeout(resolve, 1500));
       workflow = matchDemoWorkflow(prompt);
     }
   }

@@ -17,7 +17,6 @@ const TEMPLATES = [
     category: 'ecommerce',
     description: 'Complete order-taking workflow with Stripe payment processing',
     nodes: 9,
-    icon: '🍕',
     popular: true
   },
   {
@@ -25,8 +24,7 @@ const TEMPLATES = [
     name: 'Support Ticket Routing',
     category: 'support',
     description: 'Route tickets based on urgency and assign to appropriate teams',
-    nodes: 7,
-    icon: '🎧'
+    nodes: 7
   },
   {
     id: 'sales-qualification',
@@ -34,7 +32,6 @@ const TEMPLATES = [
     category: 'sales',
     description: 'Score leads with AI and create Salesforce opportunities',
     nodes: 8,
-    icon: '💼',
     popular: true
   },
   {
@@ -42,72 +39,63 @@ const TEMPLATES = [
     name: 'Candidate Screening',
     category: 'hr',
     description: 'Conduct initial interviews and send results to HR system',
-    nodes: 9,
-    icon: '👔'
+    nodes: 9
   },
   {
     id: 'appointment-booking',
     name: 'Appointment Booking',
     category: 'general',
     description: 'Schedule appointments with calendar integration',
-    nodes: 6,
-    icon: '📅'
+    nodes: 6
   },
   {
     id: 'order-status',
     name: 'Order Status Check',
     category: 'ecommerce',
     description: 'Look up order status and provide shipping information',
-    nodes: 5,
-    icon: '📦'
+    nodes: 5
   },
   {
     id: 'feedback-collection',
     name: 'Customer Feedback',
     category: 'support',
     description: 'Collect and analyze customer satisfaction feedback',
-    nodes: 6,
-    icon: '⭐'
+    nodes: 6
   },
   {
     id: 'lead-nurture',
     name: 'Lead Nurturing',
     category: 'sales',
     description: 'Multi-touch lead nurturing with email sequences',
-    nodes: 7,
-    icon: '🌱'
+    nodes: 7
   },
   {
     id: 'onboarding',
     name: 'Client Onboarding',
     category: 'general',
     description: 'Welcome new clients and collect required information',
-    nodes: 8,
-    icon: '👋'
+    nodes: 8
   },
   {
     id: 'refund-request',
     name: 'Refund Processing',
     category: 'ecommerce',
     description: 'Handle refund requests with verification and approval',
-    nodes: 7,
-    icon: '💰'
+    nodes: 7
   },
   {
     id: 'escalation',
     name: 'Issue Escalation',
     category: 'support',
     description: 'Escalate complex issues to senior support staff',
-    nodes: 6,
-    icon: '🚨'
+    nodes: 6
   },
   {
     id: 'interview-scheduler',
     name: 'Interview Scheduler',
     category: 'hr',
     description: 'Coordinate interview times with candidates and teams',
-    nodes: 7,
-    icon: '🗓️'
+    nodes: 7
   }
 ];
 
@@ -133,7 +121,7 @@ const TemplateLibrary = ({ onSelectTemplate, onClose }) => {
         {/* Header */}
         <div className="template-header">
           <div className="header-content">
-            <h2>📚 Template Library</h2>
+            <h2>Template Library</h2>
             <p>Choose a pre-built workflow to get started instantly</p>
           </div>
           <button className="close-library-btn" onClick={onClose}>
@@ -178,10 +166,8 @@ const TemplateLibrary = ({ onSelectTemplate, onClose }) => {
                 onClick={() => handleTemplateClick(template)}
               >
                 {template.popular && (
-                  <div className="popular-badge">⭐ Popular</div>
+                  <div className="popular-badge">Popular</div>
                 )}
-
-                <div className="template-icon">{template.icon}</div>
 
                 <h3 className="template-name">{template.name}</h3>
 

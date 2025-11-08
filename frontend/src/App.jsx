@@ -6,6 +6,7 @@ import LiveTestMode from './components/LiveTestMode';
 import TemplateLibrary from './components/TemplateLibrary';
 import IntelligenceHub from './components/IntelligenceHub';
 import DeploymentMenu from './components/DeploymentMenu';
+import Settings from './components/Settings';
 import { generateWorkflow } from './services/workflowGeneratorService';
 import './App.css';
 
@@ -24,6 +25,7 @@ function App() {
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
   const [showIntelligenceHub, setShowIntelligenceHub] = useState(false);
   const [showDeploymentMenu, setShowDeploymentMenu] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Handle output handle mouse down - start creating edge
   const handleOutputHandleMouseDown = (nodeId, e) => {
@@ -83,12 +85,21 @@ function App() {
   const handleGenerateWorkflow = async (prompt) => {
     setIsGenerating(true);
     try {
-      const { nodes, edges } = await generateWorkflow(prompt);
+      // Get API key from localStorage
+      const saved = localStorage.getItem('crmflow_api_keys');
+      const apiKey = saved ? JSON.parse(saved).openai : null;
+
+      const { nodes, edges } = await generateWorkflow(prompt, apiKey);
       setWorkflow(nodes, edges);
       console.log('Generated workflow:', { nodes, edges });
     } catch (error) {
       console.error('Failed to generate workflow:', error);
-      alert('Failed to generate workflow. Please try again.');
+      if (error.message.includes('API key')) {
+        alert('Please set your OpenAI API key in Settings first.');
+        setShowSettings(true);
+      } else {
+        alert('Failed to generate workflow. Please try again.');
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -102,7 +113,15 @@ function App() {
       'pizza-delivery': 'Create a workflow for a pizza restaurant that takes a delivery order and processes the payment with Stripe',
       'support-routing': 'Build a customer support workflow that routes tickets based on urgency and assigns to appropriate team',
       'sales-qualification': 'Design a sales qualification workflow that scores leads and creates opportunities in Salesforce',
-      'candidate-screening': 'Make a candidate screening workflow that asks interview questions and sends results to HR'
+      'candidate-screening': 'Make a candidate screening workflow that asks interview questions and sends results to HR',
+      'appointment-booking': 'Create an appointment booking workflow with calendar integration',
+      'order-status': 'Build a workflow to check order status and provide shipping information',
+      'feedback-collection': 'Create a customer feedback collection and analysis workflow',
+      'lead-nurture': 'Design a multi-touch lead nurturing workflow with email sequences',
+      'onboarding': 'Create a client onboarding workflow that collects required information',
+      'refund-request': 'Build a refund processing workflow with verification and approval',
+      'escalation': 'Create an issue escalation workflow to senior support staff',
+      'interview-scheduler': 'Design an interview scheduling workflow that coordinates times'
     };
     const prompt = templatePrompts[templateId] || templatePrompts['pizza-delivery'];
     await handleGenerateWorkflow(prompt);
@@ -115,22 +134,25 @@ function App() {
         <h1>CRMFlow - Visual Workflow Builder</h1>
         <div className="header-controls">
           <button className="header-btn" onClick={() => setShowTemplateLibrary(true)}>
-            📚 Templates
+            Templates
           </button>
           <button className="header-btn" onClick={() => setShowIntelligenceHub(true)}>
-            🧠 Intelligence Hub
+            Intelligence Hub
           </button>
           <button className="header-btn" onClick={() => setShowLiveTest(true)}>
-            🧪 Live Test
+            Live Test
           </button>
           <button className="header-btn" onClick={() => setShowDeploymentMenu(true)}>
-            🚀 Deploy
+            Deploy
+          </button>
+          <button className="header-btn" onClick={() => setShowSettings(true)}>
+            Settings
           </button>
           <button
             className={`run-button ${isRunning ? 'running' : ''}`}
             onClick={handleRunWorkflow}
           >
-            {isRunning ? '⏸ Stop Workflow' : '▶ Run Workflow'}
+            {isRunning ? 'Stop Workflow' : 'Run Workflow'}
           </button>
         </div>
       </header>
@@ -160,6 +182,7 @@ function App() {
       )}
       {showIntelligenceHub && <IntelligenceHub onClose={() => setShowIntelligenceHub(false)} />}
       {showDeploymentMenu && <DeploymentMenu onClose={() => setShowDeploymentMenu(false)} />}
+      {showSettings && <Settings onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

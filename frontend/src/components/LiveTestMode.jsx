@@ -4,7 +4,7 @@ import useVoiceProcessor from '../hooks/useVoiceProcessor';
 import './LiveTestMode.css';
 
 const LiveTestMode = ({ onClose }) => {
-  const { nodes, edges, activeNodeId, startWorkflow, stopWorkflow, isRunning } = useFlowStore();
+  const { nodes, edges, activeNodeId, startWorkflow, stopWorkflow, isRunning, advanceWorkflow } = useFlowStore();
   const { startListening, stopListening, speak, isListening, isSpeaking } = useVoiceProcessor();
 
   const [messages, setMessages] = useState([]);
@@ -60,16 +60,110 @@ const LiveTestMode = ({ onClose }) => {
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !isTestRunning) return;
 
     const userMessage = inputValue.trim();
     addMessage('user', userMessage);
     setInputValue('');
 
-    // Simulate AI response (in real implementation, this would go through the workflow)
-    setTimeout(() => {
-      addMessage('ai', `I received your message: "${userMessage}". Processing through workflow...`);
-    }, 500);
+    // Process through active node
+    await processUserInput(userMessage);
+  };
+
+  const processUserInput = async (userInput) => {
+    if (!activeNodeId) return;
+
+    const activeNode = nodes.find(n => n.id === activeNodeId);
+    if (!activeNode) return;
+
+    // Get API keys from localStorage
+    const saved = localStorage.getItem('crmflow_api_keys');
+    const apiKeys = saved ? JSON.parse(saved) : {};
+
+    // Process based on node type
+    switch (activeNode.type) {
+      case 'listen':
+        // Listen node - process user input with AI
+        addMessage('system', `Captured input: "${userInput}"`);
+        if (apiKeys.openai) {
+          try {
+            const response = await callOpenAI(userInput, apiKeys.openai);
+            addMessage('ai', response);
+          } catch (error) {
+            addMessage('system', `AI processing failed: ${error.message}`);
+          }
+        }
+        // Auto-advance after processing
+        setTimeout(() => advanceWorkflow(activeNodeId), 1000);
+        break;
+
+      case 'speak':
+        // Speak node - output predefined message
+        addMessage('ai', activeNode.label);
+        setTimeout(() => advanceWorkflow(activeNodeId), 1000);
+        break;
+
+      case 'ai':
+        // AI processing node
+        if (apiKeys.openai) {
+          addMessage('system', 'Processing with AI...');
+          try {
+            const response = await callOpenAI(userInput, apiKeys.openai, 'You are a helpful assistant processing workflow data.');
+            addMessage('ai', response);
+          } catch (error) {
+            addMessage('system', `AI error: ${error.message}`);
+          }
+        } else {
+          addMessage('system', 'AI node requires OpenAI API key');
+        }
+        setTimeout(() => advanceWorkflow(activeNodeId), 1500);
+        break;
+
+      case 'logic':
+      case 'integration':
+      case 'condition':
+        // Logic/Integration nodes - simulate processing
+        addMessage('system', `Executing: ${activeNode.label}`);
+        setTimeout(() => advanceWorkflow(activeNodeId), 800);
+        break;
+
+      case 'trigger':
+        // Trigger node - just advance
+        setTimeout(() => advanceWorkflow(activeNodeId), 500);
+        break;
+
+      default:
+        addMessage('system', `Node type '${activeNode.type}' processed`);
+        setTimeout(() => advanceWorkflow(activeNodeId), 1000);
+        break;
+    }
+  };
+
+  const callOpenAI = async (message, apiKey, systemPrompt = 'You are a helpful AI assistant in a workflow system.') => {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        temperature: 0.7,
+        max_tokens: 150
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'API call failed');
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
   };
 
   const handleVoiceInput = () => {
@@ -81,13 +175,11 @@ const LiveTestMode = ({ onClose }) => {
         (interim, final) => {
           // Real-time transcript
         },
-        (finalTranscript) => {
+        async (finalTranscript) => {
           if (finalTranscript) {
-            addMessage('user', `🎤 ${finalTranscript}`);
+            addMessage('user', finalTranscript);
             // Process through workflow
-            setTimeout(() => {
-              addMessage('ai', 'Processing your voice input...');
-            }, 500);
+            await processUserInput(finalTranscript);
           }
         }
       );
@@ -109,19 +201,19 @@ const LiveTestMode = ({ onClose }) => {
         {/* Left Side - Canvas View */}
         <div className="test-canvas-side">
           <div className="test-canvas-header">
-            <h3>📊 Workflow Canvas</h3>
+            <h3>Workflow Canvas</h3>
             <div className="test-controls">
               {!isTestRunning ? (
                 <button className="test-start-btn" onClick={handleStartTest}>
-                  ▶ Start Test
+                  Start Test
                 </button>
               ) : (
                 <button className="test-stop-btn" onClick={handleStopTest}>
-                  ⏸ Stop Test
+                  Stop Test
                 </button>
               )}
               <button className="test-close-btn" onClick={onClose}>
-                ✕ Close Test Mode
+                Close Test Mode
               </button>
             </div>
           </div>
@@ -141,7 +233,7 @@ const LiveTestMode = ({ onClose }) => {
                 >
                   <div className="mini-node-label">{node.label}</div>
                   {node.id === activeNodeId && isTestRunning && (
-                    <div className="active-indicator">●</div>
+                    <div className="active-indicator"></div>
                   )}
                 </div>
               ))}
@@ -178,11 +270,11 @@ const LiveTestMode = ({ onClose }) => {
         {/* Right Side - Chat Interface */}
         <div className="test-chat-side">
           <div className="test-chat-header">
-            <h3>💬 Test Interface</h3>
+            <h3>Test Interface</h3>
             <div className="test-status">
-              {isTestRunning && <span className="status-running">● Testing</span>}
-              {isListening && <span className="status-listening">🎤 Listening</span>}
-              {isSpeaking && <span className="status-speaking">🔊 Speaking</span>}
+              {isTestRunning && <span className="status-running">Testing</span>}
+              {isListening && <span className="status-listening">Listening</span>}
+              {isSpeaking && <span className="status-speaking">Speaking</span>}
             </div>
           </div>
 
@@ -212,7 +304,7 @@ const LiveTestMode = ({ onClose }) => {
               onClick={handleVoiceInput}
               disabled={!isTestRunning}
             >
-              {isListening ? '⏹' : '🎤'}
+              {isListening ? 'Stop' : 'Voice'}
             </button>
             <button
               className="send-btn"
