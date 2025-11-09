@@ -78,7 +78,7 @@ export class GeminiService {
     // Get API key
     const apiKey = await this.getApiKey(userId);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
     // Build full prompt
     let fullPrompt = '';
@@ -183,7 +183,7 @@ Example structure:
   ): AsyncGenerator<string> {
     const apiKey = await this.getApiKey(userId);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
     // Build full prompt
     let fullPrompt = '';
