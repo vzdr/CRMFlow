@@ -90,7 +90,7 @@ model KnowledgeItem {
   id        String   @id @default(cuid())
   type      String   // 'pdf', 'web', 'manual', 'voice'
   name      String
-  content   String   @db.Text
+  content   String
   enabled   Boolean  @default(true)
   url       String?  // For web scraping
   createdAt DateTime @default(now())
