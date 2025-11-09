@@ -269,11 +269,41 @@ export default function TopToolbar({
         )}
       </div>
 
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-2">
         <div className="flex items-center space-x-2 text-xs text-gray-400">
           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
           <span>Auto-saved</span>
         </div>
+        <div className="w-px h-6 bg-gray-700"></div>
+        <button
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              const event = new CustomEvent('openVoiceLab')
+              window.dispatchEvent(event)
+            }
+          }}
+          className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-gray-300 bg-gray-800 border border-gray-700 rounded-md hover:bg-gray-750 hover:text-white hover:border-gray-600 transition-all"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+          <span>Voice Lab</span>
+        </button>
+        <button
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              const event = new CustomEvent('openSettings')
+              window.dispatchEvent(event)
+            }
+          }}
+          className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-gray-300 bg-gray-800 border border-gray-700 rounded-md hover:bg-gray-750 hover:text-white hover:border-gray-600 transition-all"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>Settings</span>
+        </button>
       </div>
 
       {/* Hidden file input for import */}

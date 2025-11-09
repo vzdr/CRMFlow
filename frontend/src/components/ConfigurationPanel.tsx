@@ -7,6 +7,7 @@ import FieldMappingEditor from './FieldMappingEditor'
 interface ConfigurationPanelProps {
   selectedNode: Node | null
   onUpdateNode: (nodeId: string, data: any) => void
+  onTestNode?: (node: Node) => void
 }
 
 interface FormErrors {
@@ -16,6 +17,7 @@ interface FormErrors {
 export default function ConfigurationPanel({
   selectedNode,
   onUpdateNode,
+  onTestNode,
 }: ConfigurationPanelProps) {
   const [formData, setFormData] = useState<any>({})
   const [errors, setErrors] = useState<FormErrors>({})
@@ -611,10 +613,36 @@ export default function ConfigurationPanel({
   return (
     <div className="w-96 h-full bg-gray-900 border-l border-gray-700 overflow-y-auto">
       <div className="p-4 border-b border-gray-700 sticky top-0 bg-gray-900 z-10">
-        <h2 className="text-lg font-semibold text-white">Configuration</h2>
-        <p className="text-sm text-gray-400 mt-1">
-          {selectedNode.data?.label || 'Node Settings'}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Configuration</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              {selectedNode.data?.label || 'Node Settings'}
+            </p>
+          </div>
+          {onTestNode && (
+            <button
+              onClick={() => onTestNode(selectedNode)}
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-sm text-white bg-blue-600 border border-blue-500 rounded-md hover:bg-blue-700 hover:border-blue-600 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>Test</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="p-4 space-y-4">{getNodeTypeFields()}</div>

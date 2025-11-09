@@ -2,6 +2,25 @@
 
 **The Visual IDE for Building Intelligent Voice-Driven Workflows**
 
+![CRMFlow Studio](./docs/screenshots/studio-hero.png)
+
+[![CI](https://github.com/vzdr/CRMFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/vzdr/CRMFlow/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-TBD-blue.svg)](LICENSE)
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies (using pnpm, npm, or yarn)
+cd frontend && pnpm install
+
+# Start development server
+pnpm dev
+```
+
+Open [http://localhost:3001](http://localhost:3001) and click **"Open Flow Studio"** to start building!
+
+> 💡 **Pro tip**: The app runs in mock mode by default - you can build and test complete workflows without any API keys!
+
 ## Core Pitch
 
 CRMFlow is a no-code visual design studio that empowers businesses to create intelligent, voice-driven workflows. We leverage the visual automation paradigm of n8n to build conversational AI agents powered by Google's Gemini, which feed structured data directly into enterprise systems like SAP.
@@ -73,30 +92,64 @@ Performs consistent screening interviews:
 - **Telephony**: Twilio API
 - **Integrations**: SAP, Qlay, Google APIs
 
+## 📸 Screenshots
+
+### Flow Studio Canvas
+![Flow Studio](./docs/screenshots/flow-canvas.png)
+*Drag-and-drop interface for building conversational workflows*
+
+### Voice Lab
+![Voice Lab](./docs/screenshots/voice-lab.png)
+*Test TTS, upload prompts, and simulate call legs*
+
+### Run Console
+![Run Console](./docs/screenshots/run-console.png)
+*Real-time execution logs, context viewer, and node output inspector*
+
+### Node Configuration
+![Configuration Panel](./docs/screenshots/config-panel.png)
+*Deep customization for each node with field mapping*
+
+## 📹 Demo
+
+![CRMFlow Demo](./docs/gifs/demo.gif)
+*Watch a complete SAP Sales Qualifier workflow in action*
+
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- API keys for the services you want to use (see below)
+- Node.js 18+ (20+ recommended)
+- pnpm, npm, or yarn
+- (Optional) API keys for production use - see [Configuration](#configuration--api-keys)
 
-### Installation
+### One-Line Setup
+
+```bash
+# Clone, install, and start
+git clone https://github.com/vzdr/CRMFlow.git && cd CRMFlow/frontend && pnpm install && pnpm dev
+```
+
+### Manual Installation
 
 1. **Clone the repository**
    ```bash
    git clone https://github.com/vzdr/CRMFlow.git
-   cd CRMFlow
+   cd CRMFlow/frontend
    ```
 
-2. **Install dependencies**
+2. **Install dependencies** (choose one)
    ```bash
-   cd frontend
+   pnpm install  # Recommended - fastest
+   # OR
    npm install
+   # OR
+   yarn install
    ```
 
-3. **Set up environment variables**
+3. **(Optional) Set up environment variables for production**
    ```bash
-   # Copy the example environment file
+   # Copy the example file
    cp .env.local.example .env.local
 
    # Edit .env.local and add your API keys
@@ -104,12 +157,15 @@ Performs consistent screening interviews:
 
 4. **Start the development server**
    ```bash
+   pnpm dev
+   # OR
    npm run dev
    ```
 
 5. **Open the application**
-   - Navigate to http://localhost:3000
-   - Go to http://localhost:3000/studio to access the Flow Studio
+   - Navigate to http://localhost:3001
+   - Click **"Open Flow Studio"** button
+   - Or go directly to http://localhost:3001/studio
 
 ## Mock Mode for Development
 
@@ -431,6 +487,86 @@ curl http://localhost:3000/api/example
 
 This endpoint will show you which API keys are properly configured without exposing the actual keys.
 
+## 🎯 How to Demo
+
+### Quick Demo (No Setup Required)
+
+The app ships with **mock mode enabled** by default, so you can demo all features immediately:
+
+#### 1. **Open the Studio**
+```bash
+pnpm dev
+# Visit http://localhost:3001
+# Click "Open Flow Studio"
+```
+
+#### 2. **Load a Template**
+- Click **"Templates"** dropdown in the toolbar
+- Select **"SAP Sales Qualifier"** or **"Qlay Candidate Screener"**
+- The template loads instantly with all nodes pre-configured
+
+#### 3. **Run the Flow**
+- Click the **"Simulate Call"** button in the toolbar
+- Watch the execution in real-time in the **Run Console** (bottom panel)
+- Switch between **Logs**, **Last Output**, and **Context** tabs
+
+#### 4. **Test Individual Nodes**
+- Click any node to select it
+- Click the **"Test"** button in the Configuration Panel
+- Edit the JSON input or use **"Use Sample Input"**
+- Click **"Run Test"** to execute just that node
+
+#### 5. **Try the Voice Lab**
+- Click **"Voice Lab"** in the toolbar
+- Enter text in the prompt field
+- Click **"Generate TTS"** to hear synthesized speech (mock audio)
+- Add call legs and click **"Play Simulation"**
+
+#### 6. **Explore Settings**
+- Click **"Settings"** in the toolbar
+- Toggle **Mock Mode** ON/OFF
+- When **OFF**, nodes will attempt real API calls (requires keys)
+- Toggle back **ON** for continued demo mode
+
+### Demo Script for Presentations
+
+**[0:00 - 0:30] Introduction**
+> "CRMFlow is a visual IDE for building voice-driven workflows. Let me show you how to create an intelligent sales qualification agent in under 2 minutes."
+
+**[0:30 - 1:00] Load Template**
+- Open studio → Templates → SAP Sales Qualifier
+- Explain the flow: "When a call comes in, we greet the caller, extract the company name, check SAP, and route accordingly."
+
+**[1:00 - 1:30] Run Simulation**
+- Click "Simulate Call"
+- Point out real-time logs showing each step
+- Show the Context tab with accumulated data
+- Show Last Output with the final SAP lead created
+
+**[1:30 - 2:00] Test Individual Node**
+- Click the "SAP Get Customer" node
+- Click "Test" button
+- Show sample input, click "Run Test"
+- Explain: "You can test each node in isolation before connecting them"
+
+**[2:00 - 2:30] Voice Lab**
+- Click "Voice Lab"
+- Type: "Hello, thank you for calling. May I have your company name?"
+- Click "Generate TTS" → Plays mock audio
+- Explain: "Voice Lab lets you test TTS, upload prompts, and simulate entire call conversations"
+
+**[2:30 - 3:00] Wrap Up**
+- Show Settings modal with Mock Mode toggle
+- Explain: "Everything you just saw ran in mock mode - no API keys needed. When you're ready for production, just toggle Mock Mode off and add your API keys."
+
+### Production Demo (With Real APIs)
+
+1. **Set up environment variables** (see [Configuration](#configuration--api-keys))
+2. **Open Settings** in the studio
+3. **Toggle Mock Mode OFF**
+4. **Configure node credentials** in the Configuration Panel
+5. **Run flows** with real API integrations
+
 ## Development
 
 ### Project Structure
@@ -483,6 +619,83 @@ npm run lint
 # Format code
 npm run format
 ```
+
+## 🚢 Deployment & Production
+
+### Vercel Deployment
+
+CRMFlow is optimized for deployment on Vercel with serverless API routes.
+
+**Quick Deploy**:
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy to production
+cd frontend && vercel --prod
+```
+
+For complete deployment instructions, including:
+- Environment variable setup
+- CORS configuration for webhooks
+- Post-deployment checklist
+- Monitoring and security setup
+
+See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for the full deployment guide.
+
+### API Documentation
+
+All serverless API routes are documented with request/response examples:
+
+**Available API Routes**:
+- `/api/gemini/*` - Google Gemini AI (text generation, streaming)
+- `/api/elevenlabs/*` - Text-to-Speech and voice management
+- `/api/twilio/*` - Phone calls, SMS, WhatsApp
+- `/api/sap/*` - SAP Business One integration
+- `/api/google/*` - Calendar and Sheets
+- `/api/qlay/*` - Workflow automation
+- `/api/audio/*` - Real-time audio streaming (WebRTC/SSE)
+
+See **[frontend/API.md](./frontend/API.md)** for complete API reference.
+
+### Real-Time Audio Streaming
+
+CRMFlow includes a WebRTC/WebSocket layer for low-latency audio streaming:
+
+**Client-side hook**:
+```typescript
+import { useLiveSession } from '@/lib/hooks/useLiveSession'
+
+const { startSession, stopSession, transcripts } = useLiveSession({
+  onTranscript: (transcript) => console.log(transcript.text),
+  useWebRTC: true,
+})
+```
+
+**Features**:
+- Server-Sent Events (SSE) for transcript streaming
+- Chunked audio upload fallback
+- Interim transcript support
+- Session management
+
+See `frontend/src/lib/hooks/useLiveSession.ts` for implementation details.
+
+### Testing
+
+Run the full test suite before deploying:
+
+```bash
+# Type check + unit tests + linting
+npm test
+
+# E2E tests
+npm run test:e2e
+
+# All tests including E2E
+npm run test:all
+```
+
+See **[frontend/TESTING.md](./frontend/TESTING.md)** for testing documentation.
 
 ### Contributing
 

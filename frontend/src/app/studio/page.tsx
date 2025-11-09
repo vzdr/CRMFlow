@@ -19,10 +19,14 @@ import 'reactflow/dist/style.css'
 import NodeLibrary from '@/components/NodeLibrary'
 import ConfigurationPanel from '@/components/ConfigurationPanel'
 import TopToolbar from '@/components/TopToolbar'
-import ExecutionPanel from '@/components/ExecutionPanel'
+import RunConsole from '@/components/RunConsole'
+import VoiceLabDrawer from '@/components/VoiceLabDrawer'
+import SettingsModal from '@/components/SettingsModal'
+import NodeTestModal from '@/components/NodeTestModal'
 import { createDefaultNodeData } from '@/lib/nodeRegistry'
-import { FlowExecutor, ExecutionLog } from '@/lib/flowExecutor'
+import { FlowExecutor, ExecutionLog, ExecutionContext } from '@/lib/flowExecutor'
 import { getTemplate } from '@/lib/flowTemplates'
+import { useSettingsStore } from '@/lib/stores/settingsStore'
 
 // Empty node registry - ready for custom node types
 const nodeTypes: NodeTypes = {}
@@ -68,7 +72,14 @@ export default function StudioPage() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([])
   const [isExecuting, setIsExecuting] = useState(false)
+  const [lastNodeOutput, setLastNodeOutput] = useState<any>(null)
+  const [currentContext, setCurrentContext] = useState<ExecutionContext>({})
+  const [isTestModalOpen, setIsTestModalOpen] = useState(false)
+  const [nodeToTest, setNodeToTest] = useState<Node | null>(null)
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
+
+  // Global settings store
+  const { openVoiceLab, openSettingsModal } = useSettingsStore()
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -89,6 +100,20 @@ export default function StudioPage() {
       setEdges(initialEdges)
     }
   }, [setNodes, setEdges])
+
+  // Listen for custom events from toolbar
+  useEffect(() => {
+    const handleOpenVoiceLab = () => openVoiceLab()
+    const handleOpenSettings = () => openSettingsModal()
+
+    window.addEventListener('openVoiceLab', handleOpenVoiceLab)
+    window.addEventListener('openSettings', handleOpenSettings)
+
+    return () => {
+      window.removeEventListener('openVoiceLab', handleOpenVoiceLab)
+      window.removeEventListener('openSettings', handleOpenSettings)
+    }
+  }, [openVoiceLab, openSettingsModal])
 
   // Save to localStorage whenever nodes or edges change
   useEffect(() => {
@@ -237,17 +262,70 @@ export default function StudioPage() {
 
     setIsExecuting(true)
     setExecutionLogs([])
+    setLastNodeOutput(null)
 
     try {
       const executor = new FlowExecutor(nodes, edges)
       const result = await executor.execute(initialContext)
       setExecutionLogs(result.logs)
+      setCurrentContext(result.context)
+
+      // Extract last output from logs
+      const lastLog = result.logs[result.logs.length - 1]
+      if (lastLog && lastLog.data) {
+        setLastNodeOutput({
+          nodeLabel: lastLog.nodeLabel,
+          data: lastLog.data,
+        })
+      }
     } catch (error) {
       console.error('Execution error:', error)
     } finally {
       setIsExecuting(false)
     }
   }, [nodes, edges, isExecuting])
+
+  // Test a single node in isolation
+  const handleTestNode = useCallback((node: Node) => {
+    setNodeToTest(node)
+    setIsTestModalOpen(true)
+  }, [])
+
+  // Execute node test
+  const handleRunNodeTest = useCallback(async (node: Node, input: any) => {
+    setIsExecuting(true)
+    setExecutionLogs([])
+    setLastNodeOutput(null)
+
+    try {
+      // Create a simple flow with just this node
+      const executor = new FlowExecutor([node], [])
+      const result = await executor.execute(input)
+      setExecutionLogs(result.logs)
+      setCurrentContext(result.context)
+
+      // Extract output
+      const lastLog = result.logs[result.logs.length - 1]
+      if (lastLog && lastLog.data) {
+        setLastNodeOutput({
+          nodeLabel: lastLog.nodeLabel || node.data.label,
+          data: lastLog.data,
+        })
+      }
+    } catch (error) {
+      console.error('Node test error:', error)
+      setExecutionLogs([
+        {
+          id: 'error-1',
+          timestamp: new Date(),
+          level: 'error',
+          message: `Test failed: ${(error as Error).message}`,
+        },
+      ])
+    } finally {
+      setIsExecuting(false)
+    }
+  }, [])
 
   // Simulate inbound call with realistic company data
   const handleSimulateCall = useCallback(async () => {
@@ -342,6 +420,8 @@ export default function StudioPage() {
 
   const handleClearLogs = useCallback(() => {
     setExecutionLogs([])
+    setLastNodeOutput(null)
+    setCurrentContext({})
   }, [])
 
   // Load template
@@ -424,9 +504,36 @@ export default function StudioPage() {
             />
           </ReactFlow>
         </div>
-        <ConfigurationPanel selectedNode={selectedNode} onUpdateNode={onUpdateNode} />
+        <ConfigurationPanel
+          selectedNode={selectedNode}
+          onUpdateNode={onUpdateNode}
+          onTestNode={handleTestNode}
+        />
       </div>
-      <ExecutionPanel logs={executionLogs} isExecuting={isExecuting} onClear={handleClearLogs} />
+      <RunConsole
+        logs={executionLogs}
+        isExecuting={isExecuting}
+        lastNodeOutput={lastNodeOutput}
+        currentContext={currentContext}
+        onClear={handleClearLogs}
+      />
+
+      {/* Voice Lab Drawer */}
+      <VoiceLabDrawer />
+
+      {/* Settings Modal */}
+      <SettingsModal />
+
+      {/* Node Test Modal */}
+      <NodeTestModal
+        node={nodeToTest}
+        isOpen={isTestModalOpen}
+        onClose={() => {
+          setIsTestModalOpen(false)
+          setNodeToTest(null)
+        }}
+        onTest={handleRunNodeTest}
+      />
     </div>
   )
 }

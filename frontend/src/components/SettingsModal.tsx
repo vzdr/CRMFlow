@@ -1,46 +1,36 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
+import { useSettingsStore } from '@/lib/stores/settingsStore'
 
 interface SettingsModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onMockModeChange?: (enabled: boolean) => void
+  isOpen?: boolean
+  onClose?: () => void
 }
 
-export default function SettingsModal({ isOpen, onClose, onMockModeChange }: SettingsModalProps) {
-  const [mockMode, setMockMode] = useState(true)
-  const [autoSave, setAutoSave] = useState(true)
+export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
+  // Use Zustand store for all settings
+  const {
+    useMocks,
+    autoSave,
+    settingsModalOpen,
+    closeSettingsModal,
+    setUseMocks,
+    setAutoSave
+  } = useSettingsStore()
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Load current mock mode setting
-      const storedMockMode = localStorage.getItem('USE_MOCK')
-      setMockMode(storedMockMode === '1' || storedMockMode === null) // Default to true
-
-      // Load auto-save setting
-      const storedAutoSave = localStorage.getItem('AUTO_SAVE')
-      setAutoSave(storedAutoSave !== '0') // Default to true
-    }
-  }, [isOpen])
+  // Support both controlled and uncontrolled mode
+  const modalOpen = isOpen !== undefined ? isOpen : settingsModalOpen
+  const handleClose = onClose || closeSettingsModal
 
   const handleMockModeToggle = (enabled: boolean) => {
-    setMockMode(enabled)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('USE_MOCK', enabled ? '1' : '0')
-      console.log(`🎭 Mock mode ${enabled ? 'enabled' : 'disabled'}`)
-      if (onMockModeChange) {
-        onMockModeChange(enabled)
-      }
-    }
+    setUseMocks(enabled)
+    console.log(`🎭 Mock mode ${enabled ? 'enabled' : 'disabled'}`)
   }
 
   const handleAutoSaveToggle = (enabled: boolean) => {
     setAutoSave(enabled)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('AUTO_SAVE', enabled ? '1' : '0')
-      console.log(`💾 Auto-save ${enabled ? 'enabled' : 'disabled'}`)
-    }
+    console.log(`💾 Auto-save ${enabled ? 'enabled' : 'disabled'}`)
   }
 
   const handleClearCache = () => {
@@ -51,14 +41,14 @@ export default function SettingsModal({ isOpen, onClose, onMockModeChange }: Set
     }
   }
 
-  if (!isOpen) return null
+  if (!modalOpen) return null
 
   return (
     <>
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
-        onClick={onClose}
+        onClick={handleClose}
       >
         {/* Modal */}
         <div
@@ -75,7 +65,7 @@ export default function SettingsModal({ isOpen, onClose, onMockModeChange }: Set
               <h2 className="text-2xl font-semibold text-white">Settings</h2>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="text-gray-400 hover:text-white transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,33 +87,33 @@ export default function SettingsModal({ isOpen, onClose, onMockModeChange }: Set
                     <label htmlFor="mockMode" className="text-sm font-medium text-white">
                       Mock Mode
                     </label>
-                    <span className={`px-2 py-0.5 text-xs font-semibold rounded ${mockMode ? 'bg-yellow-900 text-yellow-200' : 'bg-green-900 text-green-200'}`}>
-                      {mockMode ? 'DEVELOPMENT' : 'PRODUCTION'}
+                    <span className={`px-2 py-0.5 text-xs font-semibold rounded ${useMocks ? 'bg-yellow-900 text-yellow-200' : 'bg-green-900 text-green-200'}`}>
+                      {useMocks ? 'DEVELOPMENT' : 'PRODUCTION'}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">
-                    {mockMode
+                    {useMocks
                       ? 'Using simulated data. No real API calls will be made.'
                       : 'Using real API endpoints. Requires valid API keys in .env.local'}
                   </p>
                 </div>
                 <button
                   id="mockMode"
-                  onClick={() => handleMockModeToggle(!mockMode)}
+                  onClick={() => handleMockModeToggle(!useMocks)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 ${
-                    mockMode ? 'bg-yellow-600' : 'bg-green-600'
+                    useMocks ? 'bg-yellow-600' : 'bg-green-600'
                   }`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      mockMode ? 'translate-x-1' : 'translate-x-6'
+                      useMocks ? 'translate-x-1' : 'translate-x-6'
                     }`}
                   />
                 </button>
               </div>
 
               {/* Warning Box */}
-              {!mockMode && (
+              {!useMocks && (
                 <div className="mt-4 p-3 bg-red-900 bg-opacity-30 border border-red-700 rounded-md">
                   <div className="flex items-start space-x-2">
                     <svg className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,7 +184,7 @@ export default function SettingsModal({ isOpen, onClose, onMockModeChange }: Set
                   <div className="text-xs text-gray-400">
                     <div className="flex justify-between mb-1">
                       <span>Mock Mode:</span>
-                      <span className="text-white">{mockMode ? 'Enabled' : 'Disabled'}</span>
+                      <span className="text-white">{useMocks ? 'Enabled' : 'Disabled'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Auto-Save:</span>
@@ -227,7 +217,7 @@ export default function SettingsModal({ isOpen, onClose, onMockModeChange }: Set
           {/* Footer */}
           <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-700">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
             >
               Done

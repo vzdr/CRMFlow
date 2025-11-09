@@ -68,7 +68,7 @@ export {
 
 /**
  * Check if mock mode is enabled
- * Set USE_MOCK=1 in environment or localStorage
+ * Checks the global settings store (persisted to localStorage via Zustand)
  */
 export function isMockMode(): boolean {
   // Check environment variable (server-side or build-time)
@@ -76,12 +76,24 @@ export function isMockMode(): boolean {
     return true
   }
 
-  // Check localStorage (client-side)
+  // Check Zustand persisted store (client-side)
   if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('crmflow-settings')
+      if (stored) {
+        const settings = JSON.parse(stored)
+        // Default to true if not set (for development)
+        return settings.state?.useMocks !== undefined ? settings.state.useMocks : true
+      }
+    } catch (error) {
+      console.error('Failed to read settings from localStorage:', error)
+    }
+
+    // Fallback to old USE_MOCK for backwards compatibility
     return localStorage.getItem('USE_MOCK') === '1'
   }
 
-  return false
+  return true // Default to mock mode
 }
 
 /**
@@ -109,14 +121,28 @@ export function disableMockMode(): void {
  */
 export function getMockModeStatus(): {
   enabled: boolean
-  source: 'environment' | 'localStorage' | 'disabled'
+  source: 'environment' | 'localStorage' | 'settings-store' | 'disabled'
 } {
   if (typeof process !== 'undefined' && process.env?.USE_MOCK === '1') {
     return { enabled: true, source: 'environment' }
   }
 
-  if (typeof window !== 'undefined' && localStorage.getItem('USE_MOCK') === '1') {
-    return { enabled: true, source: 'localStorage' }
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('crmflow-settings')
+      if (stored) {
+        const settings = JSON.parse(stored)
+        const useMocks = settings.state?.useMocks !== undefined ? settings.state.useMocks : true
+        return { enabled: useMocks, source: 'settings-store' }
+      }
+    } catch (error) {
+      console.error('Failed to read settings:', error)
+    }
+
+    // Fallback to old USE_MOCK
+    if (localStorage.getItem('USE_MOCK') === '1') {
+      return { enabled: true, source: 'localStorage' }
+    }
   }
 
   return { enabled: false, source: 'disabled' }

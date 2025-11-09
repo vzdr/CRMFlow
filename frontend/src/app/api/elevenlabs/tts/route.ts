@@ -1,88 +1,85 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { serverSecrets, validateRequiredSecrets, isServiceConfigured } from '@/config/secrets'
+import { NextRequest } from 'next/server'
+import {
+  successResponse,
+  errorResponse,
+  handleError,
+  requireEnv,
+  parseBody,
+  ErrorCodes,
+} from '@/lib/api/utils'
+import { elevenlabsTtsSchema } from '@/lib/api/schemas'
 
-// POST: returns a playable URL for generated audio
-export async function POST(req: NextRequest) {
+export const runtime = 'edge'
+export const dynamic = 'force-dynamic'
+
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json()
-    const { text, voiceId, stability, similarityBoost } = body || {}
+    // Parse and validate request body
+    const body = await parseBody(request, elevenlabsTtsSchema)
 
-    if (!text || !voiceId) {
-      return NextResponse.json({ error: 'Missing text or voiceId' }, { status: 400 })
+    // Check API key
+    const apiKey = requireEnv('ELEVENLABS_API_KEY')
+
+    const voiceId = body.voiceId || 'pNInz6obpgDQGcFmaJgB' // Default voice (Adam)
+    const modelId = body.modelId || 'eleven_turbo_v2_5'
+
+    // Call ElevenLabs API
+    const response = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          text: body.text,
+          model_id: modelId,
+          voice_settings: {
+            stability: body.stability ?? 0.5,
+            similarity_boost: body.similarityBoost ?? 0.75,
+          },
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      const error = await response.text()
+      return errorResponse(
+        ErrorCodes.EXTERNAL_API_ERROR,
+        `ElevenLabs API error: ${error}`,
+        response.status
+      )
     }
 
-    // Build a URL to our streaming GET endpoint
-    const params = new URLSearchParams({
-      text: String(text),
-      voiceId: String(voiceId),
-      stability: String(typeof stability === 'number' ? stability : 0.5),
-      similarityBoost: String(typeof similarityBoost === 'number' ? similarityBoost : 0.75),
-    })
+    // Get audio data
+    const audioBuffer = await response.arrayBuffer()
+    const audioBase64 = Buffer.from(audioBuffer).toString('base64')
 
-    const audioUrl = `/api/elevenlabs/tts?${params.toString()}`
-    return NextResponse.json({ audioUrl })
+    // Normalize response
+    const normalized = {
+      audioUrl: `data:audio/mpeg;base64,${audioBase64}`,
+      audioBase64,
+      format: 'mp3',
+      voiceId,
+      modelId,
+      charactersUsed: body.text.length,
+    }
+
+    return successResponse(normalized)
   } catch (error) {
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    return handleError(error)
   }
 }
 
-// GET: streams ElevenLabs audio (audio/mpeg) for use as <audio src>
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url)
-    const text = searchParams.get('text')
-    const voiceId = searchParams.get('voiceId')
-    const stability = Number(searchParams.get('stability') ?? '0.5')
-    const similarityBoost = Number(searchParams.get('similarityBoost') ?? '0.75')
-
-    if (!text || !voiceId) {
-      return new NextResponse('Missing text or voiceId', { status: 400 })
-    }
-
-    // Ensure ElevenLabs is configured
-    validateRequiredSecrets(['elevenlabs'])
-    const apiKey = serverSecrets.elevenlabs.apiKey()
-
-    // Call ElevenLabs TTS and stream the response
-    const apiUrl = `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}`
-    const payload = {
-      text,
-      voice_settings: {
-        stability: isFinite(stability) ? stability : 0.5,
-        similarity_boost: isFinite(similarityBoost) ? similarityBoost : 0.75,
-      },
-    }
-
-    const res = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': apiKey,
-        'Accept': 'audio/mpeg',
-      },
-      body: JSON.stringify(payload),
-    })
-
-    if (!res.ok) {
-      const text = await res.text()
-      return new NextResponse(`TTS request failed: ${res.status} ${text}`, { status: 502 })
-    }
-
-    const readable = res.body
-    if (!readable) {
-      return new NextResponse('No audio stream', { status: 502 })
-    }
-
-    return new NextResponse(readable as any, {
-      status: 200,
-      headers: {
-        'Content-Type': 'audio/mpeg',
-        'Cache-Control': 'no-store',
-      },
-    })
-  } catch (error: any) {
-    const msg = error?.message || 'TTS error'
-    return new NextResponse(msg, { status: 500 })
-  }
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
+  })
 }
-
