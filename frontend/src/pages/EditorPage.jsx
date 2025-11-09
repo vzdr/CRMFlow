@@ -11,6 +11,7 @@ import IntelligenceHub from '../components/IntelligenceHub';
 import DeploymentMenu from '../components/DeploymentMenu';
 import Settings from '../components/Settings';
 import KeyboardShortcutsGuide from '../components/KeyboardShortcutsGuide';
+import AlignmentToolbar from '../components/AlignmentToolbar';
 import { workflowApiService } from '../services/workflowApiService';
 import { aiApiService } from '../services/aiApiService';
 import '../App.css';
@@ -421,6 +422,9 @@ function EditorPage() {
       {showDeploymentMenu && <DeploymentMenu onClose={() => setShowDeploymentMenu(false)} />}
       {showSettings && <Settings onClose={() => setShowSettings(false)} />}
       {showKeyboardShortcuts && <KeyboardShortcutsGuide onClose={() => setShowKeyboardShortcuts(false)} />}
+
+      {/* Alignment Toolbar - shows when 2+ nodes selected */}
+      <AlignmentToolbar />
     </div>
   );
 }

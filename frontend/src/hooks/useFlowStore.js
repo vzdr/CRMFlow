@@ -296,6 +296,129 @@ const useFlowStore = create((set, get) => ({
   canRedo: () => {
     const { history, historyIndex } = get();
     return historyIndex < history.length - 1;
+  },
+
+  // Node alignment functions
+  alignNodes: (direction) => {
+    const { selectedNodeIds, nodes } = get();
+    if (selectedNodeIds.length < 2) return; // Need at least 2 nodes to align
+
+    get().saveHistory(); // Save state before alignment
+
+    const selectedNodes = nodes.filter(node => selectedNodeIds.includes(node.id));
+
+    let updatedNodes = [...nodes];
+
+    switch (direction) {
+      case 'left': {
+        // Align all to leftmost node
+        const minX = Math.min(...selectedNodes.map(n => n.position.x));
+        updatedNodes = nodes.map(node =>
+          selectedNodeIds.includes(node.id)
+            ? { ...node, position: { ...node.position, x: minX } }
+            : node
+        );
+        break;
+      }
+      case 'right': {
+        // Align all to rightmost node
+        const maxX = Math.max(...selectedNodes.map(n => n.position.x));
+        updatedNodes = nodes.map(node =>
+          selectedNodeIds.includes(node.id)
+            ? { ...node, position: { ...node.position, x: maxX } }
+            : node
+        );
+        break;
+      }
+      case 'top': {
+        // Align all to topmost node
+        const minY = Math.min(...selectedNodes.map(n => n.position.y));
+        updatedNodes = nodes.map(node =>
+          selectedNodeIds.includes(node.id)
+            ? { ...node, position: { ...node.position, y: minY } }
+            : node
+        );
+        break;
+      }
+      case 'bottom': {
+        // Align all to bottommost node
+        const maxY = Math.max(...selectedNodes.map(n => n.position.y));
+        updatedNodes = nodes.map(node =>
+          selectedNodeIds.includes(node.id)
+            ? { ...node, position: { ...node.position, y: maxY } }
+            : node
+        );
+        break;
+      }
+      case 'center-vertical': {
+        // Align all to vertical center
+        const avgX = selectedNodes.reduce((sum, n) => sum + n.position.x, 0) / selectedNodes.length;
+        updatedNodes = nodes.map(node =>
+          selectedNodeIds.includes(node.id)
+            ? { ...node, position: { ...node.position, x: avgX } }
+            : node
+        );
+        break;
+      }
+      case 'center-horizontal': {
+        // Align all to horizontal center
+        const avgY = selectedNodes.reduce((sum, n) => sum + n.position.y, 0) / selectedNodes.length;
+        updatedNodes = nodes.map(node =>
+          selectedNodeIds.includes(node.id)
+            ? { ...node, position: { ...node.position, y: avgY } }
+            : node
+        );
+        break;
+      }
+      default:
+        return;
+    }
+
+    set({ nodes: updatedNodes });
+  },
+
+  // Distribute nodes evenly
+  distributeNodes: (direction) => {
+    const { selectedNodeIds, nodes } = get();
+    if (selectedNodeIds.length < 3) return; // Need at least 3 nodes to distribute
+
+    get().saveHistory();
+
+    const selectedNodes = nodes.filter(node => selectedNodeIds.includes(node.id));
+
+    if (direction === 'horizontal') {
+      // Sort by x position
+      const sorted = [...selectedNodes].sort((a, b) => a.position.x - b.position.x);
+      const first = sorted[0].position.x;
+      const last = sorted[sorted.length - 1].position.x;
+      const gap = (last - first) / (sorted.length - 1);
+
+      const updatedNodes = nodes.map(node => {
+        const index = sorted.findIndex(n => n.id === node.id);
+        if (index !== -1) {
+          return { ...node, position: { ...node.position, x: first + (gap * index) } };
+        }
+        return node;
+      });
+
+      set({ nodes: updatedNodes });
+    } else if (direction === 'vertical') {
+      // Sort by y position
+      const sorted = [...selectedNodes].sort((a, b) => a.position.y - b.position.y);
+      const first = sorted[0].position.y;
+      const last = sorted[sorted.length - 1].position.y;
+      const gap = (last - first) / (sorted.length - 1);
+
+      const updatedNodes = nodes.map(node => {
+        const index = sorted.findIndex(n => n.id === node.id);
+        if (index !== -1) {
+          return { ...node, position: { ...node.position, y: first + (gap * index) } };
+        }
+        return node;
+      });
+
+      set({ nodes: updatedNodes });
+    }
   }
 }));
 

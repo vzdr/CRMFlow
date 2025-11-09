@@ -24,7 +24,15 @@ const KeyboardShortcutsGuide = ({ onClose }) => {
       category: 'Selection',
       items: [
         { keys: ['Click'], description: 'Select node' },
-        { keys: ['Shift', 'Click'], description: 'Toggle node selection' }
+        { keys: ['Shift', 'Click'], description: 'Toggle node selection' },
+        { keys: ['Drag'], description: 'Rubber band selection' }
+      ]
+    },
+    {
+      category: 'Alignment',
+      items: [
+        { keys: ['Toolbar'], description: 'Align selected nodes (appears when 2+ nodes selected)' },
+        { keys: ['Distribute'], description: 'Evenly space 3+ nodes' }
       ]
     }
   ];
