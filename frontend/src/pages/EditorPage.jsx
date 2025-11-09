@@ -10,6 +10,7 @@ import TemplateLibrary from '../components/TemplateLibrary';
 import IntelligenceHub from '../components/IntelligenceHub';
 import DeploymentMenu from '../components/DeploymentMenu';
 import Settings from '../components/Settings';
+import KeyboardShortcutsGuide from '../components/KeyboardShortcutsGuide';
 import { workflowApiService } from '../services/workflowApiService';
 import { aiApiService } from '../services/aiApiService';
 import '../App.css';
@@ -55,6 +56,7 @@ function EditorPage() {
   const [showIntelligenceHub, setShowIntelligenceHub] = useState(false);
   const [showDeploymentMenu, setShowDeploymentMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
   // Load workflow from backend on mount
   useEffect(() => {
@@ -117,6 +119,12 @@ function EditorPage() {
           redo();
           toast.success('Redone');
         }
+      }
+
+      // ? - Show keyboard shortcuts
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setShowKeyboardShortcuts(true);
       }
     };
 
@@ -338,6 +346,12 @@ function EditorPage() {
             Settings
           </button>
           <button
+            className="header-btn shortcuts-btn"
+            onClick={() => setShowKeyboardShortcuts(true)}
+            title="Keyboard Shortcuts (?)">
+            ⌨️
+          </button>
+          <button
             className={`run-button ${isRunning ? 'running' : ''}`}
             onClick={handleRunWorkflow}
           >
@@ -406,6 +420,7 @@ function EditorPage() {
       {showIntelligenceHub && <IntelligenceHub onClose={() => setShowIntelligenceHub(false)} />}
       {showDeploymentMenu && <DeploymentMenu onClose={() => setShowDeploymentMenu(false)} />}
       {showSettings && <Settings onClose={() => setShowSettings(false)} />}
+      {showKeyboardShortcuts && <KeyboardShortcutsGuide onClose={() => setShowKeyboardShortcuts(false)} />}
     </div>
   );
 }
