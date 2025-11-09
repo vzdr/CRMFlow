@@ -7,6 +7,7 @@ const useFlowStore = create((set, get) => ({
   isRunning: false,
   activeNodeId: null,
   completedNodeIds: [], // Track which nodes have been executed
+  executionMode: 'auto', // 'auto' = auto-advance (Run Workflow), 'manual' = wait for user (Live Test)
 
   // Node management functions
   addNode: (node) => {
@@ -32,8 +33,13 @@ const useFlowStore = create((set, get) => ({
     }));
   },
 
+  // Set execution mode
+  setExecutionMode: (mode) => {
+    set({ executionMode: mode });
+  },
+
   // Workflow execution functions
-  startWorkflow: () => {
+  startWorkflow: (mode = 'auto') => {
     const { nodes, edges } = get();
 
     // Find the first node (e.g., "Inbound Call" or the node with no incoming edges)
@@ -45,20 +51,22 @@ const useFlowStore = create((set, get) => ({
       set({
         isRunning: true,
         activeNodeId: firstNode.id,
-        completedNodeIds: [] // Reset completed nodes
+        completedNodeIds: [], // Reset completed nodes
+        executionMode: mode // Set mode on start
       });
     } else if (nodes.length > 0) {
       // Fallback: use the first node in the array
       set({
         isRunning: true,
         activeNodeId: nodes[0].id,
-        completedNodeIds: []
+        completedNodeIds: [],
+        executionMode: mode
       });
     }
   },
 
   advanceWorkflow: (fromNodeId) => {
-    const { edges, nodes, completedNodeIds } = get();
+    const { edges, nodes, completedNodeIds, executionMode } = get();
 
     // Prevent double-advancement: only advance if fromNodeId is currently active
     // This prevents conflicts between auto-advance and manual LiveTestMode advancement
@@ -82,15 +90,17 @@ const useFlowStore = create((set, get) => ({
         completedNodeIds: updatedCompletedNodes
       });
 
-      // Auto-advance after delay for automatic execution (visual-only mode)
-      // This timeout is skipped if LiveTestMode manually advances first
-      setTimeout(() => {
-        const currentNode = nodes.find(n => n.id === nextEdge.targetNodeId);
-        // Only auto-advance if we're still on this node (prevents double-advance)
-        if (currentNode && get().isRunning && get().activeNodeId === nextEdge.targetNodeId) {
-          get().advanceWorkflow(nextEdge.targetNodeId);
-        }
-      }, 2000); // 2 second delay per node for visibility
+      // ONLY auto-advance in 'auto' mode (Run Workflow button)
+      // In 'manual' mode (Live Test), LiveTestMode controls advancement
+      if (executionMode === 'auto') {
+        setTimeout(() => {
+          const currentNode = nodes.find(n => n.id === nextEdge.targetNodeId);
+          // Only auto-advance if we're still on this node and still in auto mode
+          if (currentNode && get().isRunning && get().activeNodeId === nextEdge.targetNodeId && get().executionMode === 'auto') {
+            get().advanceWorkflow(nextEdge.targetNodeId);
+          }
+        }, 2000); // 2 second delay per node for visibility
+      }
     } else {
       // No more nodes to execute - workflow complete
       set({

@@ -54,7 +54,8 @@ const LiveTestMode = ({ onClose }) => {
       timestamp: new Date()
     }]);
 
-    startWorkflow();
+    // Start in MANUAL mode - no auto-advance, wait for user input
+    startWorkflow('manual');
   };
 
   const handleStopTest = () => {

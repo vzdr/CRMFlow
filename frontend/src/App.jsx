@@ -77,7 +77,8 @@ function App() {
     if (isRunning) {
       stopWorkflow();
     } else {
-      startWorkflow();
+      // Start in AUTO mode - auto-advances through all nodes
+      startWorkflow('auto');
     }
   };
 
