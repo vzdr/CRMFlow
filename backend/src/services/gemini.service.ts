@@ -145,7 +145,7 @@ Example structure:
       includeKnowledge: false,
       includePersonality: false,
       temperature: 0.8,
-      maxTokens: 1500
+      maxTokens: 2048
     });
 
     // Parse JSON response
@@ -153,8 +153,11 @@ Example structure:
       // Log the raw response for debugging
       console.log('Gemini raw response:', response);
 
+      // Remove markdown code blocks if present
+      let cleanedResponse = response.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
       // Extract JSON from response (in case there's extra text)
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.error('No JSON found in Gemini response');
         throw new Error('No JSON found in response');
