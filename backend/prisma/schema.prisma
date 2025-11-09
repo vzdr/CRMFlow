@@ -1,0 +1,123 @@
+// Prisma Schema for CRMFlow
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workflows       Workflow[]
+  apiKeys         ApiKey[]
+  executionLogs   ExecutionLog[]
+  knowledgeItems  KnowledgeItem[]
+  voiceRecordingUrl String?
+  personality     String?
+
+  @@index([email])
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  isPublic    Boolean  @default(false)
+  isTemplate  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  nodes         Node[]
+  edges         Edge[]
+  executionLogs ExecutionLog[]
+
+  @@index([userId])
+  @@index([isTemplate])
+}
+
+model Node {
+  id         String  @id @default(cuid())
+  label      String
+  type       String  // trigger, speak, listen, ai, logic, integration
+  positionX  Float
+  positionY  Float
+  data       Json?   // Additional node-specific configuration
+
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+}
+
+model Edge {
+  id             String @id @default(cuid())
+  sourceNodeId   String
+  targetNodeId   String
+
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([sourceNodeId])
+  @@index([targetNodeId])
+}
+
+model ApiKey {
+  id           String   @id @default(cuid())
+  service      String   // 'gemini', 'elevenlabs', 'twilio'
+  encryptedKey String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, service])
+  @@index([userId])
+}
+
+model KnowledgeItem {
+  id        String   @id @default(cuid())
+  type      String   // 'pdf', 'web', 'manual', 'voice'
+  name      String
+  content   String   @db.Text
+  enabled   Boolean  @default(true)
+  url       String?  // For web scraping
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([enabled])
+}
+
+model ExecutionLog {
+  id          String   @id @default(cuid())
+  eventType   String   // 'session_start', 'message_sent', 'ai_response', 'node_advance', 'session_end'
+  nodeId      String?
+  nodeType    String?
+  data        Json?    // Event-specific data
+  createdAt   DateTime @default(now())
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([workflowId])
+  @@index([createdAt])
+}
