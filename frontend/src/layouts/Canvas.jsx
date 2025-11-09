@@ -13,10 +13,12 @@ const Canvas = ({
   draftEdge
 }) => {
   const canvasRef = useRef(null);
-  const { nodes, edges, updateNodePosition, toggleNodeSelection, clearSelection, selectedNodeIds, zoomLevel, panOffset } = useFlowStore();
+  const { nodes, edges, updateNodePosition, toggleNodeSelection, clearSelection, selectedNodeIds, zoomLevel, panOffset, setPanOffset } = useFlowStore();
   const [draggingNode, setDraggingNode] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [selectionBox, setSelectionBox] = useState(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
   const handleNodeDragStart = (nodeId, e) => {
     const node = nodes.find(n => n.id === nodeId);
@@ -30,6 +32,16 @@ const Canvas = ({
   };
 
   const handleCanvasMouseMove = (e) => {
+    // Handle panning
+    if (isPanning) {
+      const newOffset = {
+        x: e.clientX - panStart.x,
+        y: e.clientY - panStart.y
+      };
+      setPanOffset(newOffset);
+      return;
+    }
+
     // Call parent handler for draft edge
     onCanvasMouseMove && onCanvasMouseMove(e);
 
@@ -54,6 +66,14 @@ const Canvas = ({
   };
 
   const handleCanvasMouseDown = (e) => {
+    // Middle mouse button or Space+Left mouse = pan
+    if (e.button === 1 || (e.button === 0 && e.spaceKey)) {
+      e.preventDefault();
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+      return;
+    }
+
     // Only start selection if clicking directly on canvas (not on nodes or handles)
     if (e.target.className === 'canvas' || e.target.tagName === 'svg' || e.target.className === 'nodes-layer') {
       // Start selection box
@@ -73,6 +93,12 @@ const Canvas = ({
   };
 
   const handleCanvasMouseUp = (e) => {
+    // End panning
+    if (isPanning) {
+      setIsPanning(false);
+      return;
+    }
+
     // Call parent handler for draft edge
     onCanvasMouseUp && onCanvasMouseUp(e);
 
@@ -114,10 +140,11 @@ const Canvas = ({
   return (
     <div
       ref={canvasRef}
-      className="canvas"
+      className={`canvas ${isPanning ? 'panning' : ''}`}
       onMouseDown={handleCanvasMouseDown}
       onMouseMove={handleCanvasMouseMove}
       onMouseUp={handleCanvasMouseUp}
+      onContextMenu={(e) => e.preventDefault()} // Prevent context menu on right click
     >
       {/* SVG layer for edges */}
       <svg className="edges-layer">

@@ -11,6 +11,14 @@
   cursor: default;
 }
 
+.canvas.panning {
+  cursor: grabbing !important;
+}
+
+.canvas:active {
+  cursor: grab;
+}
+
 .edges-layer {
   position: absolute;
   top: 0;
