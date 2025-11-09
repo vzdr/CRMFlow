@@ -69,10 +69,10 @@ function validateWebhookSignature(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const webhookId = params.id
+    const webhookId = (await params).id
 
     // Get webhook configuration
     const config = webhookConfigs[webhookId]
@@ -185,9 +185,9 @@ export async function POST(
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const webhookId = params.id
+  const webhookId = (await params).id
   const config = webhookConfigs[webhookId]
 
   if (!config) {
