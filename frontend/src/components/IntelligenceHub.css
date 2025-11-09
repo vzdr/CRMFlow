@@ -249,3 +249,130 @@ input:checked + .toggle-slider:before { transform: translateX(26px); }
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Loading state */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 20px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #333;
+  border-top-color: #00ff00;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state p {
+  color: #888;
+  font-size: 14px;
+}
+
+/* Improved knowledge item layout */
+.item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.item-name {
+  font-weight: 600;
+  color: #fff;
+}
+
+.item-url {
+  font-size: 12px;
+  color: #888;
+  font-family: 'Monaco', 'Courier New', monospace;
+  word-break: break-all;
+}
+
+.item-size {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.item-icon {
+  font-size: 14px;
+  padding: 8px;
+  background: rgba(0, 255, 0, 0.1);
+  border-radius: 6px;
+  min-width: 60px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Empty states */
+.knowledge-panel h3,
+.personality-panel h3,
+.voice-panel h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.knowledge-panel p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Analytics cards */
+.analytics-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #00ff00;
+  margin: 12px 0;
+}
+
+.analytics-trend {
+  font-size: 13px;
+  color: #888;
+}
+
+.analytics-trend.positive {
+  color: #00ff00;
+}
+
+/* Voice recording improvements */
+.voice-recorder {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid #444;
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+}
+
+.record-btn {
+  min-width: 150px;
+}
+
+.recording-instructions {
+  margin-top: 30px;
+  padding: 20px;
+  background: rgba(0, 255, 0, 0.05);
+  border: 1px solid rgba(0, 255, 0, 0.2);
+  border-radius: 8px;
+}
+
+.script-text {
+  margin-top: 12px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  font-style: italic;
+  line-height: 1.8;
+  color: #aaa;
+}

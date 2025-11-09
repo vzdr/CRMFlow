@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useFlowStore from '../hooks/useFlowStore';
+import useAutoSave from '../hooks/useAutoSave';
 import Canvas from '../layouts/Canvas';
 import WorkflowGenerator from '../components/WorkflowGenerator';
 import LiveTestMode from '../components/LiveTestMode';
@@ -41,15 +42,8 @@ function EditorPage() {
     loadWorkflow();
   }, [workflowId]);
 
-  // Auto-save on workflow changes (debounced)
-  useEffect(() => {
-    if (!isLoading && nodes.length > 0) {
-      const timeoutId = setTimeout(() => {
-        saveWorkflow();
-      }, 1000); // Debounce 1 second
-      return () => clearTimeout(timeoutId);
-    }
-  }, [nodes, edges, isLoading]);
+  // Auto-save on workflow changes using custom hook (1-second debounce)
+  useAutoSave(saveWorkflow, [nodes, edges, workflowName], 1000, !isLoading && nodes.length > 0);
 
   const loadWorkflow = async () => {
     try {

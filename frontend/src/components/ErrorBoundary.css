@@ -1,0 +1,114 @@
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  color: #e0e0e0;
+  padding: 20px;
+}
+
+.error-boundary-content {
+  max-width: 600px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid #444;
+  border-radius: 16px;
+  padding: 40px;
+}
+
+.error-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.error-boundary h1 {
+  font-size: 28px;
+  margin: 0 0 16px 0;
+  color: #fff;
+}
+
+.error-message {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #aaa;
+  margin: 0 0 30px 0;
+}
+
+.error-details {
+  text-align: left;
+  margin: 20px 0;
+  padding: 16px;
+  background: rgba(255, 59, 48, 0.1);
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  border-radius: 8px;
+}
+
+.error-details summary {
+  cursor: pointer;
+  color: #ff3b30;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.error-stack {
+  margin: 10px 0 0 0;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #e0e0e0;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.primary-btn,
+.secondary-btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.primary-btn {
+  background: #00ff00;
+  color: #000;
+}
+
+.primary-btn:hover {
+  background: #00cc00;
+  transform: translateY(-1px);
+}
+
+.secondary-btn {
+  background: transparent;
+  color: #e0e0e0;
+  border: 1px solid #555;
+}
+
+.secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #666;
+  transform: translateY(-1px);
+}

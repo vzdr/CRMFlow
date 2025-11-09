@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { knowledgeApiService } from '../services/knowledgeApiService';
+import toast from 'react-hot-toast';
 import './IntelligenceHub.css';
 
 const IntelligenceHub = ({ onClose }) => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('knowledge');
   const [knowledgeItems, setKnowledgeItems] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [personality, setPersonality] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [voiceBlob, setVoiceBlob] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -16,46 +20,34 @@ const IntelligenceHub = ({ onClose }) => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    loadSavedData();
+    loadKnowledgeItems();
+    loadPersonality();
   }, []);
 
-  const loadSavedData = () => {
-    const saved = localStorage.getItem('crmflow_intelligence_hub');
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        setKnowledgeItems(data.knowledgeItems || []);
-        setPersonality(data.personality || getDefaultPersonality());
-        if (data.voiceBlob) {
-          setVoiceBlob(data.voiceBlob);
-        }
-      } catch (e) {
-        console.error('Failed to load Intelligence Hub data:', e);
-        setPersonality(getDefaultPersonality());
-      }
-    } else {
-      setPersonality(getDefaultPersonality());
+  const loadKnowledgeItems = async () => {
+    try {
+      setLoading(true);
+      const items = await knowledgeApiService.getKnowledgeItems();
+      setKnowledgeItems(items);
+    } catch (error) {
+      console.error('Failed to load knowledge items:', error);
+      toast.error('Failed to load knowledge items');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const loadPersonality = () => {
+    // Load from localStorage for now (backend support in future)
+    const saved = localStorage.getItem('crmflow_personality');
+    setPersonality(saved || getDefaultPersonality());
   };
 
   const getDefaultPersonality = () => {
     return 'You are a helpful and professional AI assistant for CRMFlow. You provide clear, concise answers and always aim to help customers efficiently.';
   };
 
-  const saveData = () => {
-    const dataToSave = {
-      knowledgeItems,
-      personality,
-      voiceBlob: voiceBlob
-    };
-    localStorage.setItem('crmflow_intelligence_hub', JSON.stringify(dataToSave));
-  };
-
-  useEffect(() => {
-    saveData();
-  }, [knowledgeItems, personality, voiceBlob]);
-
-  // PDF UPLOAD - REAL IMPLEMENTATION
+  // PDF UPLOAD - Backend API
   const handlePDFUpload = async () => {
     if (!fileInputRef.current) return;
     fileInputRef.current.click();
@@ -66,135 +58,104 @@ const IntelligenceHub = ({ onClose }) => {
     if (!file) return;
 
     if (file.type !== 'application/pdf' && !file.name.endsWith('.pdf')) {
-      alert('Please upload a PDF file');
+      toast.error('Please upload a PDF file');
       return;
     }
 
-    setIsUploading(true);
+    setLoading(true);
     try {
-      // Read PDF file
-      const fileReader = new FileReader();
-      fileReader.onload = async (event) => {
-        try {
-          // Extract text from PDF
-          const text = await extractTextFromPDF(event.target.result);
+      const name = file.name.replace('.pdf', '');
+      const result = await knowledgeApiService.addPDFKnowledge(file, name);
 
-          // Add to knowledge base
-          const newItem = {
-            id: Date.now(),
-            type: 'pdf',
-            name: file.name,
-            enabled: true,
-            content: text,
-            uploadedAt: new Date().toISOString()
-          };
-
-          setKnowledgeItems(prev => [...prev, newItem]);
-          alert(`PDF "${file.name}" uploaded successfully! Extracted ${text.length} characters of text.`);
-        } catch (error) {
-          console.error('PDF extraction error:', error);
-          alert(`Failed to extract text from PDF: ${error.message}`);
-        } finally {
-          setIsUploading(false);
-        }
-      };
-      fileReader.readAsArrayBuffer(file);
+      toast.success(`PDF "${name}" uploaded! Extracted ${result.extractedLength} characters.`);
+      await loadKnowledgeItems();
     } catch (error) {
-      console.error('File upload error:', error);
-      alert(`Upload failed: ${error.message}`);
-      setIsUploading(false);
+      console.error('PDF upload error:', error);
+      toast.error(`Failed to upload PDF: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const extractTextFromPDF = async (arrayBuffer) => {
-    // Simple text extraction - in production, use pdf.js library
-    // For now, we'll store the raw content and return a placeholder
-    const decoder = new TextDecoder('utf-8');
-    try {
-      const text = decoder.decode(arrayBuffer);
-      // Extract readable text (simplified)
-      const readable = text.replace(/[^\x20-\x7E\n]/g, ' ').trim();
-      return readable.substring(0, 50000); // Limit to 50k chars
-    } catch (e) {
-      return `PDF content (${(arrayBuffer.byteLength / 1024).toFixed(2)} KB) - Text extraction requires pdf.js library`;
-    }
-  };
-
-  // WEBSITE SCRAPING - REAL IMPLEMENTATION
+  // WEBSITE SCRAPING - Backend API
   const handleWebsiteScrape = async () => {
     const url = prompt('Enter website URL to scrape:');
     if (!url) return;
 
-    setIsUploading(true);
+    // Basic URL validation
     try {
-      // Fetch website content
-      const response = await fetch(url);
-      const html = await response.text();
+      new URL(url);
+    } catch {
+      toast.error('Invalid URL format');
+      return;
+    }
 
-      // Extract text from HTML (simple parsing)
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      const text = doc.body.textContent || doc.body.innerText || '';
-      const cleanText = text.replace(/\s+/g, ' ').trim();
-
-      const newItem = {
-        id: Date.now(),
-        type: 'web',
-        name: new URL(url).hostname,
-        enabled: true,
-        content: cleanText.substring(0, 50000), // Limit to 50k chars
-        url: url,
-        scrapedAt: new Date().toISOString()
-      };
-
-      setKnowledgeItems(prev => [...prev, newItem]);
-      alert(`Website scraped successfully! Extracted ${cleanText.length} characters.`);
+    setLoading(true);
+    try {
+      const result = await knowledgeApiService.addWebKnowledge(url);
+      toast.success(`Website scraped! Extracted ${result.item.content.length} characters.`);
+      await loadKnowledgeItems();
     } catch (error) {
       console.error('Web scraping error:', error);
-      alert(`Failed to scrape website: ${error.message}. Note: CORS may block some sites.`);
+      toast.error(`Failed to scrape website: ${error.message}`);
     } finally {
-      setIsUploading(false);
+      setLoading(false);
     }
   };
 
-  // MANUAL Q&A - REAL IMPLEMENTATION
-  const handleManualQA = () => {
+  // MANUAL Q&A - Backend API
+  const handleManualQA = async () => {
     const question = prompt('Enter question:');
     if (!question) return;
 
     const answer = prompt('Enter answer:');
     if (!answer) return;
 
-    const newItem = {
-      id: Date.now(),
-      type: 'manual',
-      name: question,
-      enabled: true,
-      content: `Q: ${question}\nA: ${answer}`,
-      createdAt: new Date().toISOString()
-    };
-
-    setKnowledgeItems(prev => [...prev, newItem]);
-    alert('Q&A added successfully!');
+    setLoading(true);
+    try {
+      await knowledgeApiService.addManualKnowledge(question, question, answer);
+      toast.success('Q&A added successfully!');
+      await loadKnowledgeItems();
+    } catch (error) {
+      console.error('Manual Q&A error:', error);
+      toast.error(`Failed to add Q&A: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleToggleKnowledge = (itemId) => {
-    setKnowledgeItems(prev => prev.map(item =>
-      item.id === itemId ? { ...item, enabled: !item.enabled } : item
-    ));
+  const handleToggleKnowledge = async (item) => {
+    try {
+      await knowledgeApiService.updateKnowledgeItem(item.id, { enabled: !item.enabled });
+      setKnowledgeItems(prev => prev.map(i =>
+        i.id === item.id ? { ...i, enabled: !i.enabled } : i
+      ));
+      toast.success(`Knowledge item ${!item.enabled ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+      console.error('Toggle error:', error);
+      toast.error('Failed to update knowledge item');
+    }
   };
 
-  const handleDeleteKnowledge = (itemId) => {
+  const handleDeleteKnowledge = async (itemId) => {
     if (!confirm('Delete this knowledge item?')) return;
-    setKnowledgeItems(prev => prev.filter(item => item.id !== itemId));
+
+    try {
+      await knowledgeApiService.deleteKnowledgeItem(itemId);
+      setKnowledgeItems(prev => prev.filter(item => item.id !== itemId));
+      toast.success('Knowledge item deleted');
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete knowledge item');
+    }
   };
 
   const handleSavePersonality = () => {
-    saveData();
-    alert('Personality saved! This will be used in all AI interactions.');
+    localStorage.setItem('crmflow_personality', personality);
+    toast.success('Personality saved! This will be used in all AI interactions.');
   };
 
-  // VOICE RECORDING - REAL IMPLEMENTATION with MediaRecorder
+  // VOICE RECORDING - MediaRecorder API
   const handleVoiceRecording = async () => {
     if (isRecording) {
       // Stop recording
@@ -224,15 +185,7 @@ const IntelligenceHub = ({ onClose }) => {
           // Stop all tracks
           stream.getTracks().forEach(track => track.stop());
 
-          // Check for ElevenLabs API key
-          const saved = localStorage.getItem('crmflow_api_keys');
-          const apiKeys = saved ? JSON.parse(saved) : {};
-
-          if (apiKeys.elevenlabs) {
-            alert(`Voice recorded (${(audioBlob.size / 1024).toFixed(2)} KB)! In production, this would be sent to ElevenLabs API for voice cloning.`);
-          } else {
-            alert(`Voice recorded (${(audioBlob.size / 1024).toFixed(2)} KB)! Add ElevenLabs API key in Settings to enable voice cloning.`);
-          }
+          toast.success(`Voice recorded (${(audioBlob.size / 1024).toFixed(2)} KB)! Add ElevenLabs API key in Settings to enable voice cloning.`);
         };
 
         mediaRecorder.start();
@@ -252,7 +205,7 @@ const IntelligenceHub = ({ onClose }) => {
 
       } catch (error) {
         console.error('Microphone access error:', error);
-        alert(`Failed to access microphone: ${error.message}`);
+        toast.error(`Failed to access microphone: ${error.message}`);
       }
     }
   };
@@ -263,16 +216,6 @@ const IntelligenceHub = ({ onClose }) => {
       const audio = new Audio(audioUrl);
       audio.play();
     }
-  };
-
-  // Export knowledge base for use in AI prompts
-  const getKnowledgeContext = () => {
-    const enabledItems = knowledgeItems.filter(item => item.enabled);
-    if (enabledItems.length === 0) return '';
-
-    return '\n\nKNOWLEDGE BASE:\n' + enabledItems.map(item =>
-      `- ${item.name}: ${item.content.substring(0, 500)}...`
-    ).join('\n');
   };
 
   return (
@@ -327,59 +270,70 @@ const IntelligenceHub = ({ onClose }) => {
                 <button
                   className="add-knowledge-btn"
                   onClick={handlePDFUpload}
-                  disabled={isUploading}
+                  disabled={loading}
                 >
-                  {isUploading ? 'Uploading...' : '+ Upload PDF'}
+                  {loading ? 'Uploading...' : '+ Upload PDF'}
                 </button>
                 <button
                   className="add-knowledge-btn"
                   onClick={handleWebsiteScrape}
-                  disabled={isUploading}
+                  disabled={loading}
                 >
                   + Scrape Website
                 </button>
-                <button className="add-knowledge-btn" onClick={handleManualQA}>
+                <button className="add-knowledge-btn" onClick={handleManualQA} disabled={loading}>
                   + Add Manual Q&A
                 </button>
               </div>
 
-              <div className="knowledge-list">
-                {knowledgeItems.length === 0 ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
-                    No knowledge items yet. Upload PDFs, scrape websites, or add Q&A pairs.
-                  </div>
-                ) : (
-                  knowledgeItems.map(item => (
-                    <div key={item.id} className="knowledge-item">
-                      <div className="item-info">
-                        <span className="item-icon">
-                          {item.type === 'pdf' ? 'PDF' : item.type === 'web' ? 'WEB' : 'Q&A'}
-                        </span>
-                        <span className="item-name">{item.name}</span>
-                        <span className="item-size">
-                          {item.content ? `${(item.content.length / 1024).toFixed(1)} KB` : ''}
-                        </span>
-                      </div>
-                      <div className="item-actions">
-                        <label className="toggle-switch">
-                          <input
-                            type="checkbox"
-                            checked={item.enabled}
-                            onChange={() => handleToggleKnowledge(item.id)}
-                          />
-                          <span className="toggle-slider"></span>
-                        </label>
-                        <button
-                          className="delete-btn"
-                          onClick={() => handleDeleteKnowledge(item.id)}
-                        >
-                          ×
-                        </button>
-                      </div>
+              {loading && knowledgeItems.length === 0 ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>Loading knowledge items...</p>
+                </div>
+              ) : (
+                <div className="knowledge-list">
+                  {knowledgeItems.length === 0 ? (
+                    <div style={{ padding: '40px 20px', textAlign: 'center', color: '#888' }}>
+                      <h3>No knowledge items yet</h3>
+                      <p>Upload PDFs, scrape websites, or add Q&A pairs to build your knowledge base.</p>
                     </div>
-                  ))
-                )}
-              </div>
+                  ) : (
+                    knowledgeItems.map(item => (
+                      <div key={item.id} className="knowledge-item">
+                        <div className="item-info">
+                          <span className="item-icon">
+                            {item.type === 'pdf' ? '📄 PDF' : item.type === 'web' ? '🌐 WEB' : '💬 Q&A'}
+                          </span>
+                          <div className="item-details">
+                            <span className="item-name">{item.name}</span>
+                            {item.url && <span className="item-url">{item.url}</span>}
+                            <span className="item-size">
+                              {item.content ? `${(item.content.length / 1024).toFixed(1)} KB` : ''}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="item-actions">
+                          <label className="toggle-switch">
+                            <input
+                              type="checkbox"
+                              checked={item.enabled}
+                              onChange={() => handleToggleKnowledge(item)}
+                            />
+                            <span className="toggle-slider"></span>
+                          </label>
+                          <button
+                            className="delete-btn"
+                            onClick={() => handleDeleteKnowledge(item.id)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -391,7 +345,7 @@ const IntelligenceHub = ({ onClose }) => {
               </p>
               <textarea
                 className="personality-input"
-                placeholder="Example: You are 'BistroBot,' the friendly assistant for our restaurant. You love to recommend specials."
+                placeholder="Example: You are 'BistroBot,' the friendly assistant for our restaurant. You love to recommend specials and always sound upbeat!"
                 rows={10}
                 value={personality}
                 onChange={(e) => setPersonality(e.target.value)}
@@ -407,7 +361,7 @@ const IntelligenceHub = ({ onClose }) => {
               <div className="voice-cloning-section">
                 <h3>Clone Your Voice</h3>
                 <p className="panel-description">
-                  Record 30 seconds of your voice for AI voice cloning
+                  Record 30 seconds of your voice for AI voice cloning with ElevenLabs
                 </p>
                 <div className="voice-recorder">
                   <div className="record-button">
@@ -435,17 +389,17 @@ const IntelligenceHub = ({ onClose }) => {
                 <h3>Voice Library</h3>
                 <div className="voice-list">
                   <div className="voice-item">
-                    <span>Default Voice</span>
-                    <button className="preview-btn">Preview</button>
+                    <span>🎙️ Default Voice</span>
+                    <button className="preview-btn" disabled>Preview</button>
                   </div>
                   <div className="voice-item">
-                    <span>Custom Voice {voiceBlob ? '(Recorded)' : '(Not recorded)'}</span>
+                    <span>🎤 Custom Voice {voiceBlob ? '(Recorded)' : '(Not recorded)'}</span>
                     <button
                       className="preview-btn"
                       disabled={!voiceBlob}
                       onClick={handlePreviewVoice}
                     >
-                      Preview
+                      {voiceBlob ? 'Preview' : 'Not Available'}
                     </button>
                   </div>
                 </div>
@@ -458,34 +412,30 @@ const IntelligenceHub = ({ onClose }) => {
               <div className="analytics-grid">
                 <div className="analytics-card">
                   <h4>Total Executions</h4>
-                  <div className="analytics-value">247</div>
-                  <div className="analytics-trend">+12% this week</div>
+                  <div className="analytics-value">—</div>
+                  <div className="analytics-trend">Coming soon</div>
                 </div>
                 <div className="analytics-card">
                   <h4>Avg Duration</h4>
-                  <div className="analytics-value">2m 34s</div>
-                  <div className="analytics-trend">-8% faster</div>
+                  <div className="analytics-value">—</div>
+                  <div className="analytics-trend">Coming soon</div>
                 </div>
                 <div className="analytics-card">
                   <h4>Sentiment</h4>
-                  <div className="analytics-value">78%</div>
-                  <div className="analytics-trend positive">Positive</div>
+                  <div className="analytics-value">—</div>
+                  <div className="analytics-trend">Coming soon</div>
                 </div>
                 <div className="analytics-card">
                   <h4>Success Rate</h4>
-                  <div className="analytics-value">94%</div>
-                  <div className="analytics-trend">+3% improvement</div>
+                  <div className="analytics-value">—</div>
+                  <div className="analytics-trend">Coming soon</div>
                 </div>
               </div>
               <div className="top-questions">
-                <h3>Top 5 Customer Questions</h3>
-                <div className="question-list">
-                  <div className="question-item">1. What are your business hours?</div>
-                  <div className="question-item">2. How much does delivery cost?</div>
-                  <div className="question-item">3. Do you offer refunds?</div>
-                  <div className="question-item">4. What payment methods do you accept?</div>
-                  <div className="question-item">5. How long does shipping take?</div>
-                </div>
+                <h3>Analytics Dashboard</h3>
+                <p style={{ color: '#888', textAlign: 'center', padding: '20px' }}>
+                  Detailed analytics will be available soon. Connect your workflows to start tracking execution metrics.
+                </p>
               </div>
             </div>
           )}
