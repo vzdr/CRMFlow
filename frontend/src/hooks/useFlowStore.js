@@ -10,9 +10,13 @@ const useFlowStore = create((set, get) => ({
   executionMode: 'auto', // 'auto' = auto-advance (Run Workflow), 'manual' = wait for user (Live Test)
   selectedNodeIds: [], // Track selected nodes for copy/paste/delete
   copiedNodes: null, // Store copied node data
+  history: [], // History stack for undo/redo
+  historyIndex: -1, // Current position in history
+  maxHistorySize: 50, // Maximum number of undo states
 
   // Node management functions
   addNode: (node) => {
+    get().saveHistory(); // Save state before change
     set((state) => ({
       nodes: [...state.nodes, node]
     }));
@@ -30,6 +34,7 @@ const useFlowStore = create((set, get) => ({
 
   // Edge management functions
   addEdge: (edge) => {
+    get().saveHistory(); // Save state before change
     set((state) => ({
       edges: [...state.edges, edge]
     }));
@@ -127,7 +132,9 @@ const useFlowStore = create((set, get) => ({
       nodes: nodes,
       edges: edges,
       isRunning: false,
-      activeNodeId: null
+      activeNodeId: null,
+      history: [{ nodes: JSON.parse(JSON.stringify(nodes)), edges: JSON.parse(JSON.stringify(edges)) }],
+      historyIndex: 0
     });
   },
 
@@ -185,6 +192,8 @@ const useFlowStore = create((set, get) => ({
     const { copiedNodes, nodes } = get();
     if (!copiedNodes || copiedNodes.length === 0) return;
 
+    get().saveHistory(); // Save state before change
+
     // Create new nodes with offset positions and new IDs
     const offset = { x: 50, y: 50 };
     const newNodes = copiedNodes.map((copiedNode) => ({
@@ -208,6 +217,8 @@ const useFlowStore = create((set, get) => ({
     const { selectedNodeIds } = get();
     if (selectedNodeIds.length === 0) return;
 
+    get().saveHistory(); // Save state before change
+
     set((state) => ({
       nodes: state.nodes.filter(node => !selectedNodeIds.includes(node.id)),
       edges: state.edges.filter(edge =>
@@ -216,6 +227,75 @@ const useFlowStore = create((set, get) => ({
       ),
       selectedNodeIds: []
     }));
+  },
+
+  // History management
+  saveHistory: () => {
+    const { nodes, edges, history, historyIndex, maxHistorySize } = get();
+
+    // Create a snapshot of current state
+    const snapshot = {
+      nodes: JSON.parse(JSON.stringify(nodes)),
+      edges: JSON.parse(JSON.stringify(edges))
+    };
+
+    // Remove any future history if we're not at the end
+    const newHistory = history.slice(0, historyIndex + 1);
+
+    // Add new snapshot
+    newHistory.push(snapshot);
+
+    // Limit history size
+    if (newHistory.length > maxHistorySize) {
+      newHistory.shift();
+    }
+
+    set({
+      history: newHistory,
+      historyIndex: newHistory.length - 1
+    });
+  },
+
+  undo: () => {
+    const { history, historyIndex } = get();
+
+    if (historyIndex <= 0) return; // Nothing to undo
+
+    const newIndex = historyIndex - 1;
+    const snapshot = history[newIndex];
+
+    set({
+      nodes: JSON.parse(JSON.stringify(snapshot.nodes)),
+      edges: JSON.parse(JSON.stringify(snapshot.edges)),
+      historyIndex: newIndex,
+      selectedNodeIds: [] // Clear selection on undo
+    });
+  },
+
+  redo: () => {
+    const { history, historyIndex } = get();
+
+    if (historyIndex >= history.length - 1) return; // Nothing to redo
+
+    const newIndex = historyIndex + 1;
+    const snapshot = history[newIndex];
+
+    set({
+      nodes: JSON.parse(JSON.stringify(snapshot.nodes)),
+      edges: JSON.parse(JSON.stringify(snapshot.edges)),
+      historyIndex: newIndex,
+      selectedNodeIds: [] // Clear selection on redo
+    });
+  },
+
+  canUndo: () => {
+    const { historyIndex } = get();
+    return historyIndex > 0;
+  },
+
+  canRedo: () => {
+    const { history, historyIndex } = get();
+    return historyIndex < history.length - 1;
   }
 }));
 

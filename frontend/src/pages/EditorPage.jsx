@@ -31,7 +31,11 @@ function EditorPage() {
     copyNodes,
     pasteNodes,
     deleteSelectedNodes,
-    clearSelection
+    clearSelection,
+    undo,
+    redo,
+    canUndo,
+    canRedo
   } = useFlowStore();
 
   // Loading state
@@ -96,11 +100,29 @@ function EditorPage() {
       if (e.key === 'Escape') {
         clearSelection();
       }
+
+      // Ctrl+Z or Cmd+Z: Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        if (canUndo()) {
+          undo();
+          toast.success('Undone');
+        }
+      }
+
+      // Ctrl+Shift+Z or Cmd+Shift+Z: Redo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        if (canRedo()) {
+          redo();
+          toast.success('Redone');
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeIds, copyNodes, pasteNodes, deleteSelectedNodes, clearSelection]);
+  }, [selectedNodeIds, copyNodes, pasteNodes, deleteSelectedNodes, clearSelection, undo, redo, canUndo, canRedo]);
 
   const loadWorkflow = async () => {
     try {
