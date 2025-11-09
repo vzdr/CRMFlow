@@ -150,22 +150,34 @@ Example structure:
 
     // Parse JSON response
     try {
+      // Log the raw response for debugging
+      console.log('Gemini raw response:', response);
+
       // Extract JSON from response (in case there's extra text)
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
+        console.error('No JSON found in Gemini response');
         throw new Error('No JSON found in response');
       }
 
       const workflow = JSON.parse(jsonMatch[0]);
+      console.log('Parsed workflow:', JSON.stringify(workflow, null, 2));
 
       // Validate structure
       if (!workflow.nodes || !Array.isArray(workflow.nodes)) {
+        console.error('Invalid workflow structure - missing nodes array');
         throw new Error('Invalid workflow structure');
+      }
+
+      // Ensure edges array exists
+      if (!workflow.edges) {
+        workflow.edges = [];
       }
 
       return workflow;
     } catch (error) {
-      throw new AppError('Failed to generate valid workflow', 500);
+      console.error('Error parsing workflow:', error);
+      throw new AppError(`Failed to generate valid workflow: ${error.message}`, 500);
     }
   }
 
