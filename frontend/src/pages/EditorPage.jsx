@@ -63,6 +63,35 @@ function EditorPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
+  // Save workflow function
+  const saveWorkflow = async () => {
+    try {
+      // Convert frontend format to backend format
+      const backendNodes = nodes.map(node => ({
+        id: node.id,
+        label: node.label,
+        type: node.type,
+        position: node.position,
+        data: node.data || {}
+      }));
+
+      const backendEdges = edges.map(edge => ({
+        id: edge.id,
+        sourceNodeId: edge.sourceNodeId,
+        targetNodeId: edge.targetNodeId
+      }));
+
+      await workflowApiService.updateWorkflow(workflowId, {
+        name: workflowName,
+        nodes: backendNodes,
+        edges: backendEdges
+      });
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+      // Don't show error toast for auto-save failures to avoid spam
+    }
+  };
+
   // Load workflow from backend on mount
   useEffect(() => {
     loadWorkflow();
@@ -183,34 +212,6 @@ function EditorPage() {
       console.error(error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const saveWorkflow = async () => {
-    try {
-      // Convert frontend format to backend format
-      const backendNodes = nodes.map(node => ({
-        id: node.id,
-        label: node.label,
-        type: node.type,
-        position: node.position,
-        data: node.data || {}
-      }));
-
-      const backendEdges = edges.map(edge => ({
-        id: edge.id,
-        sourceNodeId: edge.sourceNodeId,
-        targetNodeId: edge.targetNodeId
-      }));
-
-      await workflowApiService.updateWorkflow(workflowId, {
-        name: workflowName,
-        nodes: backendNodes,
-        edges: backendEdges
-      });
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-      // Don't show error toast for auto-save failures to avoid spam
     }
   };
 
