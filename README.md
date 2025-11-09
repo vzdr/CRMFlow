@@ -39,8 +39,12 @@ CRMFlow is a complete, production-ready visual workflow builder that enables you
 - ✅ **Knowledge Base** - PDF upload, web scraping, manual Q&A
 - ✅ **Copy/Paste Nodes** - Duplicate workflow nodes with Ctrl+C/V
 - ✅ **Multi-Node Selection** - Select multiple nodes with Shift+Click
+- ✅ **Rubber Band Selection** - Drag to select multiple nodes at once
 - ✅ **Undo/Redo** - 50-level history stack with Ctrl+Z/Shift+Z
 - ✅ **Delete Selected** - Remove nodes with Delete/Backspace keys
+- ✅ **Node Alignment Tools** - Align and distribute nodes (left/right/top/bottom/center)
+- ✅ **Canvas Zoom** - Zoom in/out with Ctrl+Plus/Minus or zoom controls (10%-200%)
+- ✅ **Canvas Panning** - Pan view with middle mouse button
 
 ### Security & Authentication
 - ✅ **JWT Authentication** - Secure user authentication with 7-day tokens
@@ -350,10 +354,10 @@ For issues, questions, or feature requests, please open an issue on GitHub.
 
 <div align="center">
 
-**Status:** Production-Ready • **Tasks Completed:** 400/500 (80%)
+**Status:** Production-Ready • **Tasks Completed:** 430/500 (86%)
 
 Made with TypeScript, React, Socket.IO, and Gemini AI
 
-**Latest Updates:** UI/UX Enhancements, Copy/Paste, Undo/Redo, Keyboard Shortcuts
+**Latest Updates:** Canvas Tools (Rubber Band, Alignment, Zoom, Pan), Copy/Paste, Undo/Redo
 
 </div>
