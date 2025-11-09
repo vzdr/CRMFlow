@@ -1,36 +1,173 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import useFlowStore from '../hooks/useFlowStore';
-import { callGemini } from '../services/geminiService';
+import { useAuth } from '../contexts/AuthContext';
+import toast from 'react-hot-toast';
 import './LiveTestMode.css';
 
+const SOCKET_URL = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:3001';
+
 const LiveTestMode = ({ onClose }) => {
-  const { nodes, edges, activeNodeId, startWorkflow, stopWorkflow, isRunning, advanceWorkflow, completedNodeIds } = useFlowStore();
+  const { workflowId } = useParams();
+  const { user } = useAuth();
+  const { nodes, edges } = useFlowStore();
+
+  // Local state for live test execution (separate from useFlowStore)
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const messagesEndRef = useRef(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [activeNodeId, setActiveNodeId] = useState(null);
+  const [completedNodeIds, setCompletedNodeIds] = useState([]);
 
+  const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
+  const currentAIMessageRef = useRef('');
+
+  // Initialize Socket.IO connection
   useEffect(() => {
-    // Welcome message
-    setMessages([{
-      id: 'welcome',
-      type: 'system',
-      content: 'Live Test Mode - Click "Start Test" to begin workflow execution',
-      timestamp: new Date()
-    }]);
-  }, []);
+    if (!workflowId || !user) return;
+
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
+    });
+
+    socketRef.current = socket;
+
+    // Socket event handlers
+    socket.on('connect', () => {
+      console.log('Socket.IO connected');
+      addMessage('system', 'Connected to execution engine');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Socket.IO disconnected');
+      addMessage('system', 'Disconnected from execution engine');
+      setIsRunning(false);
+      setIsProcessing(false);
+    });
+
+    socket.on('error', (error) => {
+      console.error('Socket error:', error);
+      addMessage('system', `Error: ${error.message || 'Unknown error'}`);
+      setIsProcessing(false);
+    });
+
+    socket.on('session:started', (data) => {
+      console.log('Session started:', data);
+      setIsRunning(true);
+      addMessage('system', `Workflow started (${data.nodeCount} nodes)`);
+    });
+
+    socket.on('node:execution_start', (data) => {
+      console.log('Node execution start:', data);
+      setActiveNodeId(data.nodeId);
+      const node = nodes.find(n => n.id === data.nodeId);
+      if (node) {
+        addMessage('system', `[${node.type.toUpperCase()}] ${node.label}`);
+      }
+    });
+
+    socket.on('node:execution_complete', (data) => {
+      console.log('Node execution complete:', data);
+      setCompletedNodeIds(prev => [...prev, data.nodeId]);
+      setActiveNodeId(null);
+    });
+
+    socket.on('ai:processing_start', () => {
+      console.log('AI processing start');
+      setIsProcessing(true);
+      currentAIMessageRef.current = '';
+    });
+
+    socket.on('ai:chunk', (data) => {
+      // Streaming AI response
+      currentAIMessageRef.current += data.chunk;
+
+      // Update or create AI message
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage && lastMessage.type === 'ai' && lastMessage.isStreaming) {
+          // Update existing streaming message
+          return [
+            ...prev.slice(0, -1),
+            { ...lastMessage, content: currentAIMessageRef.current }
+          ];
+        } else {
+          // Create new streaming message
+          return [
+            ...prev,
+            {
+              id: `msg-${Date.now()}`,
+              type: 'ai',
+              content: currentAIMessageRef.current,
+              isStreaming: true,
+              timestamp: new Date()
+            }
+          ];
+        }
+      });
+    });
+
+    socket.on('ai:processing_end', () => {
+      console.log('AI processing end');
+      setIsProcessing(false);
+
+      // Mark final AI message as complete
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage && lastMessage.isStreaming) {
+          return [
+            ...prev.slice(0, -1),
+            { ...lastMessage, isStreaming: false }
+          ];
+        }
+        return prev;
+      });
+
+      currentAIMessageRef.current = '';
+    });
+
+    socket.on('ai:speech', (data) => {
+      addMessage('ai', data.text);
+    });
+
+    socket.on('workflow:complete', (data) => {
+      console.log('Workflow complete:', data);
+      setIsRunning(false);
+      setActiveNodeId(null);
+      addMessage('system', `✓ Workflow complete! Executed ${data.executedNodes} nodes`);
+      toast.success('Workflow completed successfully');
+    });
+
+    socket.on('workflow:stopped', () => {
+      console.log('Workflow stopped');
+      setIsRunning(false);
+      setActiveNodeId(null);
+      addMessage('system', 'Workflow stopped');
+    });
+
+    socket.on('workflow:awaiting_input', (data) => {
+      console.log('Awaiting user input:', data);
+      addMessage('system', 'Waiting for your input...');
+    });
+
+    // Cleanup on unmount
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, [workflowId, user, nodes]);
 
   useEffect(() => {
     // Auto-scroll to bottom
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // When workflow starts or advances, handle the active node
-  useEffect(() => {
-    if (activeNodeId && isRunning && nodes.length > 0) {
-      handleActiveNode();
-    }
-  }, [activeNodeId, isRunning]);
 
   const addMessage = (type, content) => {
     setMessages(prev => [...prev, {
@@ -43,7 +180,12 @@ const LiveTestMode = ({ onClose }) => {
 
   const handleStartTest = () => {
     if (nodes.length === 0) {
-      alert('Please load a workflow first (use Templates or Generate from Prompt)');
+      toast.error('Please load a workflow first');
+      return;
+    }
+
+    if (!socketRef.current || !socketRef.current.connected) {
+      toast.error('Not connected to execution engine');
       return;
     }
 
@@ -54,173 +196,45 @@ const LiveTestMode = ({ onClose }) => {
       timestamp: new Date()
     }]);
 
-    // Start in MANUAL mode - no auto-advance, wait for user input
-    startWorkflow('manual');
+    setCompletedNodeIds([]);
+    setActiveNodeId(null);
+
+    // Start session on backend
+    socketRef.current.emit('session:start', {
+      workflowId,
+      userId: user.id
+    });
   };
 
   const handleStopTest = () => {
-    stopWorkflow();
-    addMessage('system', 'Workflow stopped');
+    if (socketRef.current) {
+      socketRef.current.emit('session:stop');
+    }
+    setIsRunning(false);
     setIsProcessing(false);
-  };
-
-  const handleActiveNode = async () => {
-    if (isProcessing) return; // Prevent duplicate processing
-
-    const activeNode = nodes.find(n => n.id === activeNodeId);
-    if (!activeNode) return;
-
-    setIsProcessing(true);
-
-    try {
-      await executeNode(activeNode);
-    } catch (error) {
-      console.error('Node execution error:', error);
-      addMessage('system', `Error executing ${activeNode.label}: ${error.message}`);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const executeNode = async (node) => {
-    console.log('Executing node:', node);
-
-    // Add system message showing which node is executing
-    addMessage('system', `[${node.type.toUpperCase()}] ${node.label}`);
-
-    switch (node.type) {
-      case 'trigger':
-        // Trigger nodes just start the workflow
-        await delay(500);
-        addMessage('system', 'Workflow triggered');
-        advanceWorkflow(node.id);
-        break;
-
-      case 'speak':
-        // AI speaks to the user
-        await delay(800);
-        try {
-          const response = await callGemini(
-            `Say this to the user in a natural, conversational way: "${node.label}"`,
-            {
-              systemPrompt: 'You are speaking to a user. Be friendly and natural. Keep it brief (1-2 sentences).',
-              maxTokens: 150
-            }
-          );
-          addMessage('ai', response);
-        } catch (error) {
-          // Fallback if Gemini fails
-          addMessage('ai', node.label);
-        }
-        advanceWorkflow(node.id);
-        break;
-
-      case 'listen':
-        // Wait for user input - don't auto-advance
-        addMessage('system', 'Waiting for your input...');
-        // Don't call advanceWorkflow - wait for user to type
-        break;
-
-      case 'ai':
-        // AI processing - wait for user input or use context
-        addMessage('system', 'AI is ready to respond. Type your message...');
-        // Don't auto-advance
-        break;
-
-      case 'logic':
-        // Perform logic operation
-        await delay(1000);
-        addMessage('system', `Processing: ${node.label}...`);
-        addMessage('system', `✓ ${node.label} completed`);
-        advanceWorkflow(node.id);
-        break;
-
-      case 'condition':
-        // Evaluate condition (simplified - take first edge)
-        await delay(800);
-        addMessage('system', `Evaluating: ${node.label}...`);
-        const conditionResult = Math.random() > 0.5 ? 'true' : 'false';
-        addMessage('system', `Condition result: ${conditionResult}`);
-        advanceWorkflow(node.id);
-        break;
-
-      case 'integration':
-        // Simulate API call
-        await delay(1200);
-        addMessage('system', `Calling API: ${node.label}...`);
-        addMessage('system', `✓ ${node.label} completed successfully`);
-        advanceWorkflow(node.id);
-        break;
-
-      default:
-        // Unknown node type
-        await delay(500);
-        addMessage('system', `Executed: ${node.label}`);
-        advanceWorkflow(node.id);
-        break;
-    }
+    setActiveNodeId(null);
+    addMessage('system', 'Workflow stopped');
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || !isRunning) return;
+    if (!inputValue.trim() || !isRunning || !socketRef.current) return;
 
     const userMessage = inputValue.trim();
     addMessage('user', userMessage);
     setInputValue('');
-    setIsProcessing(true);
 
-    try {
-      // Get active node
-      const activeNode = nodes.find(n => n.id === activeNodeId);
-      if (!activeNode) {
-        addMessage('system', 'No active node to process input');
-        setIsProcessing(false);
-        return;
-      }
+    // Send message to backend via Socket.IO
+    socketRef.current.emit('user:message', {
+      message: userMessage
+    });
+  };
 
-      if (activeNode.type === 'listen' || activeNode.type === 'ai') {
-        // Process user input with Gemini
-        addMessage('system', 'Processing your input with AI...');
+  const handleAdvanceWorkflow = () => {
+    if (!socketRef.current || !activeNodeId) return;
 
-        try {
-          // Build context from conversation
-          const conversationContext = messages
-            .filter(m => m.type === 'user' || m.type === 'ai')
-            .slice(-5) // Last 5 messages
-            .map(m => `${m.type === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
-            .join('\n');
-
-          const systemPrompt = `You are helping process this step in a workflow: "${activeNode.label}"
-
-Previous conversation:
-${conversationContext}
-
-Respond naturally and helpfully to the user's message. Keep responses concise (2-3 sentences max).`;
-
-          const aiResponse = await callGemini(userMessage, {
-            systemPrompt,
-            includeKnowledge: true,
-            includePersonality: true,
-            maxTokens: 300
-          });
-
-          addMessage('ai', aiResponse);
-
-          // Auto-advance after AI processes
-          await delay(1000);
-          advanceWorkflow(activeNode.id);
-        } catch (error) {
-          addMessage('system', `AI error: ${error.message}`);
-          // Still advance even on error
-          advanceWorkflow(activeNode.id);
-        }
-      } else {
-        // Not a listen/ai node, just acknowledge
-        addMessage('system', 'Input received');
-      }
-    } finally {
-      setIsProcessing(false);
-    }
+    socketRef.current.emit('workflow:advance', {
+      fromNodeId: activeNodeId
+    });
   };
 
   const handleKeyDown = (e) => {
@@ -229,8 +243,6 @@ Respond naturally and helpfully to the user's message. Keep responses concise (2
       handleSendMessage();
     }
   };
-
-  const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
   const getNodeStatusColor = (nodeId) => {
     if (nodeId === activeNodeId && isRunning) {
@@ -254,9 +266,16 @@ Respond naturally and helpfully to the user's message. Keep responses concise (2
                   Start Test
                 </button>
               ) : (
-                <button className="test-stop-btn" onClick={handleStopTest}>
-                  Stop Test
-                </button>
+                <>
+                  <button className="test-stop-btn" onClick={handleStopTest}>
+                    Stop Test
+                  </button>
+                  {activeNodeId && (
+                    <button className="test-advance-btn" onClick={handleAdvanceWorkflow}>
+                      Advance →
+                    </button>
+                  )}
+                </>
               )}
               <button className="test-close-btn" onClick={onClose}>
                 Close
@@ -345,7 +364,7 @@ Respond naturally and helpfully to the user's message. Keep responses concise (2
           <div className="test-chat-header">
             <h3>Test Conversation</h3>
             {isProcessing && (
-              <span className="processing-indicator">Processing...</span>
+              <span className="processing-indicator">AI is typing...</span>
             )}
           </div>
 
@@ -355,7 +374,10 @@ Respond naturally and helpfully to the user's message. Keep responses concise (2
                 key={message.id}
                 className={`test-message test-message-${message.type}`}
               >
-                <div className="message-content">{message.content}</div>
+                <div className="message-content">
+                  {message.content}
+                  {message.isStreaming && <span className="cursor-blink">▊</span>}
+                </div>
                 <div className="message-time">
                   {message.timestamp.toLocaleTimeString()}
                 </div>
