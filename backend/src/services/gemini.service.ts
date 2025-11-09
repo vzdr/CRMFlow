@@ -78,7 +78,7 @@ export class GeminiService {
     // Get API key
     const apiKey = await this.getApiKey(userId);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
     // Build full prompt
     let fullPrompt = '';
@@ -104,16 +104,23 @@ export class GeminiService {
     fullPrompt += `User: ${userMessage}`;
 
     // Generate response
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-      generationConfig: {
-        temperature: options?.temperature || 0.7,
-        maxOutputTokens: options?.maxTokens || 500
-      }
-    });
+    try {
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
+        generationConfig: {
+          temperature: options?.temperature || 0.7,
+          maxOutputTokens: options?.maxTokens || 500
+        }
+      });
 
-    const response = result.response;
-    return response.text();
+      const response = result.response;
+      const text = response.text();
+      console.log('Gemini response received, length:', text?.length || 0);
+      return text;
+    } catch (error) {
+      console.error('Error calling Gemini API:', error);
+      throw error;
+    }
   }
 
   /**
@@ -198,7 +205,7 @@ Example structure:
   ): AsyncGenerator<string> {
     const apiKey = await this.getApiKey(userId);
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
     // Build full prompt
     let fullPrompt = '';
