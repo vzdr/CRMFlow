@@ -60,8 +60,18 @@ const useFlowStore = create((set, get) => ({
   advanceWorkflow: (fromNodeId) => {
     const { edges, nodes, completedNodeIds } = get();
 
-    // Mark current node as completed
-    const updatedCompletedNodes = [...completedNodeIds, fromNodeId];
+    // Prevent double-advancement: only advance if fromNodeId is currently active
+    // This prevents conflicts between auto-advance and manual LiveTestMode advancement
+    const currentActiveId = get().activeNodeId;
+    if (currentActiveId !== null && currentActiveId !== fromNodeId) {
+      console.log(`Skipping advance from ${fromNodeId}, current active is ${currentActiveId}`);
+      return;
+    }
+
+    // Mark current node as completed (avoid duplicates)
+    const updatedCompletedNodes = completedNodeIds.includes(fromNodeId)
+      ? completedNodeIds
+      : [...completedNodeIds, fromNodeId];
 
     // Find the edge connected to fromNodeId
     const nextEdge = edges.find((edge) => edge.sourceNodeId === fromNodeId);
@@ -72,11 +82,12 @@ const useFlowStore = create((set, get) => ({
         completedNodeIds: updatedCompletedNodes
       });
 
-      // Auto-advance after delay for automatic execution
+      // Auto-advance after delay for automatic execution (visual-only mode)
+      // This timeout is skipped if LiveTestMode manually advances first
       setTimeout(() => {
         const currentNode = nodes.find(n => n.id === nextEdge.targetNodeId);
-        if (currentNode && get().isRunning) {
-          // Auto-advance to next node
+        // Only auto-advance if we're still on this node (prevents double-advance)
+        if (currentNode && get().isRunning && get().activeNodeId === nextEdge.targetNodeId) {
           get().advanceWorkflow(nextEdge.targetNodeId);
         }
       }, 2000); // 2 second delay per node for visibility
