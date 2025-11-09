@@ -1,16 +1,94 @@
-# React + Vite
+# CRMFlow Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Next.js 15 application with TypeScript, Tailwind CSS, and dark theme.
 
-Currently, two official plugins are available:
+## Getting Started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Prerequisites
 
-## React Compiler
+- Node.js 18+ installed
+- npm or yarn package manager
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Installation
 
-## Expanding the ESLint configuration
+```bash
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Development
+
+Run the development server:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Build
+
+Build the production application:
+
+```bash
+npm run build
+```
+
+### Start Production Server
+
+Start the production server:
+
+```bash
+npm start
+```
+
+### Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build production application
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check code formatting
+- `npm run type-check` - Type check TypeScript
+- `npm test` - Run tests (type-check + lint)
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local` and fill in your API keys:
+
+```bash
+cp .env.example .env.local
+```
+
+## Project Structure
+
+```
+frontend/
+├── src/
+│   └── app/
+│       ├── layout.tsx        # Root layout with dark theme
+│       ├── page.tsx           # Home page
+│       └── globals.css        # Global styles with Tailwind
+├── public/                    # Static assets
+├── packages/
+│   └── ui/                    # Shared UI components (optional)
+├── next.config.ts             # Next.js configuration
+├── tailwind.config.ts         # Tailwind CSS configuration
+├── tsconfig.json              # TypeScript configuration
+└── package.json               # Dependencies and scripts
+```
+
+## Features
+
+- Next.js 15 with App Router
+- TypeScript for type safety
+- Tailwind CSS for styling
+- Dark theme enabled by default
+- ESLint and Prettier configured
+- Monorepo structure with packages/ui
+
+## Learn More
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [TypeScript Documentation](https://www.typescriptlang.org/docs)

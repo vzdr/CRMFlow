@@ -1,0 +1,20 @@
+{
+  "name": "crmflow",
+  "version": "1.0.0",
+  "description": "**The Visual IDE for Building Intelligent Voice-Driven Workflows**",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vzdr/CRMFlow.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vzdr/CRMFlow/issues"
+  },
+  "homepage": "https://github.com/vzdr/CRMFlow#readme"
+}
