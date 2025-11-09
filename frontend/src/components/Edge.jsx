@@ -2,7 +2,7 @@ import React from 'react';
 import './Edge.css';
 
 const Edge = ({ sourceNode, targetNode }) => {
-  if (!sourceNode || !targetNode) return null;
+  if (!sourceNode || !targetNode || !sourceNode.position || !targetNode.position) return null;
 
   // Calculate handle positions
   const sourceX = sourceNode.position.x + 170 + 6; // node width + handle offset

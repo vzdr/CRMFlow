@@ -285,7 +285,17 @@ function EditorPage() {
     setIsGenerating(true);
     try {
       const { nodes: generatedNodes, edges: generatedEdges } = await aiApiService.generateWorkflow(prompt);
-      setWorkflow(generatedNodes, generatedEdges);
+
+      // Add default positions to generated nodes if they don't have them
+      const nodesWithPositions = generatedNodes.map((node, index) => ({
+        ...node,
+        position: node.position || {
+          x: 100 + (index % 3) * 280,
+          y: 100 + Math.floor(index / 3) * 150
+        }
+      }));
+
+      setWorkflow(nodesWithPositions, generatedEdges);
       toast.success('Workflow generated!');
     } catch (error) {
       console.error('Failed to generate workflow:', error);
