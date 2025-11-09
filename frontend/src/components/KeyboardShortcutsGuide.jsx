@@ -34,6 +34,14 @@ const KeyboardShortcutsGuide = ({ onClose }) => {
         { keys: ['Toolbar'], description: 'Align selected nodes (appears when 2+ nodes selected)' },
         { keys: ['Distribute'], description: 'Evenly space 3+ nodes' }
       ]
+    },
+    {
+      category: 'Zoom & Pan',
+      items: [
+        { keys: ['Ctrl', '+'], description: 'Zoom in', mac: ['⌘', '+'] },
+        { keys: ['Ctrl', '-'], description: 'Zoom out', mac: ['⌘', '-'] },
+        { keys: ['Ctrl', '0'], description: 'Reset zoom & pan', mac: ['⌘', '0'] }
+      ]
     }
   ];
 

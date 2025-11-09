@@ -13,7 +13,7 @@ const Canvas = ({
   draftEdge
 }) => {
   const canvasRef = useRef(null);
-  const { nodes, edges, updateNodePosition, toggleNodeSelection, clearSelection, selectedNodeIds } = useFlowStore();
+  const { nodes, edges, updateNodePosition, toggleNodeSelection, clearSelection, selectedNodeIds, zoomLevel, panOffset } = useFlowStore();
   const [draggingNode, setDraggingNode] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [selectionBox, setSelectionBox] = useState(null);
@@ -150,7 +150,13 @@ const Canvas = ({
       </svg>
 
       {/* Nodes layer */}
-      <div className="nodes-layer">
+      <div
+        className="nodes-layer"
+        style={{
+          transform: `scale(${zoomLevel}) translate(${panOffset.x}px, ${panOffset.y}px)`,
+          transformOrigin: '0 0'
+        }}
+      >
         {nodes.map((node) => {
           // Render specialized node for AI interactions
           if (node.label === 'Listen for Intent') {

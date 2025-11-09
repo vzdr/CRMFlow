@@ -12,6 +12,7 @@ import DeploymentMenu from '../components/DeploymentMenu';
 import Settings from '../components/Settings';
 import KeyboardShortcutsGuide from '../components/KeyboardShortcutsGuide';
 import AlignmentToolbar from '../components/AlignmentToolbar';
+import ZoomControls from '../components/ZoomControls';
 import { workflowApiService } from '../services/workflowApiService';
 import { aiApiService } from '../services/aiApiService';
 import '../App.css';
@@ -37,7 +38,10 @@ function EditorPage() {
     undo,
     redo,
     canUndo,
-    canRedo
+    canRedo,
+    zoomIn,
+    zoomOut,
+    resetZoom
   } = useFlowStore();
 
   // Loading state
@@ -127,11 +131,30 @@ function EditorPage() {
         e.preventDefault();
         setShowKeyboardShortcuts(true);
       }
+
+      // Ctrl+Plus or Ctrl+= - Zoom In
+      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
+        zoomIn();
+      }
+
+      // Ctrl+Minus - Zoom Out
+      if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+        e.preventDefault();
+        zoomOut();
+      }
+
+      // Ctrl+0 - Reset Zoom
+      if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+        e.preventDefault();
+        resetZoom();
+        toast.success('Zoom reset');
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeIds, copyNodes, pasteNodes, deleteSelectedNodes, clearSelection, undo, redo, canUndo, canRedo]);
+  }, [selectedNodeIds, copyNodes, pasteNodes, deleteSelectedNodes, clearSelection, undo, redo, canUndo, canRedo, zoomIn, zoomOut, resetZoom]);
 
   const loadWorkflow = async () => {
     try {
@@ -425,6 +448,9 @@ function EditorPage() {
 
       {/* Alignment Toolbar - shows when 2+ nodes selected */}
       <AlignmentToolbar />
+
+      {/* Zoom Controls */}
+      <ZoomControls />
     </div>
   );
 }

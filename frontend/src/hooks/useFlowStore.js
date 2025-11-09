@@ -13,6 +13,8 @@ const useFlowStore = create((set, get) => ({
   history: [], // History stack for undo/redo
   historyIndex: -1, // Current position in history
   maxHistorySize: 50, // Maximum number of undo states
+  zoomLevel: 1, // Canvas zoom level (0.1 to 2.0)
+  panOffset: { x: 0, y: 0 }, // Canvas pan offset
 
   // Node management functions
   addNode: (node) => {
@@ -419,6 +421,32 @@ const useFlowStore = create((set, get) => ({
 
       set({ nodes: updatedNodes });
     }
+  },
+
+  // Zoom and pan controls
+  setZoom: (zoom) => {
+    const clampedZoom = Math.max(0.1, Math.min(2.0, zoom));
+    set({ zoomLevel: clampedZoom });
+  },
+
+  zoomIn: () => {
+    const { zoomLevel } = get();
+    const newZoom = Math.min(2.0, zoomLevel + 0.1);
+    set({ zoomLevel: newZoom });
+  },
+
+  zoomOut: () => {
+    const { zoomLevel } = get();
+    const newZoom = Math.max(0.1, zoomLevel - 0.1);
+    set({ zoomLevel: newZoom });
+  },
+
+  resetZoom: () => {
+    set({ zoomLevel: 1, panOffset: { x: 0, y: 0 } });
+  },
+
+  setPanOffset: (offset) => {
+    set({ panOffset: offset });
   }
 }));
 
