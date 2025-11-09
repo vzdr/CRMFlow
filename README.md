@@ -37,6 +37,10 @@ CRMFlow is a complete, production-ready visual workflow builder that enables you
 - ✅ **Auto-Save** - 1-second debounced automatic saving to database
 - ✅ **Template System** - Clone pre-built workflow templates
 - ✅ **Knowledge Base** - PDF upload, web scraping, manual Q&A
+- ✅ **Copy/Paste Nodes** - Duplicate workflow nodes with Ctrl+C/V
+- ✅ **Multi-Node Selection** - Select multiple nodes with Shift+Click
+- ✅ **Undo/Redo** - 50-level history stack with Ctrl+Z/Shift+Z
+- ✅ **Delete Selected** - Remove nodes with Delete/Backspace keys
 
 ### Security & Authentication
 - ✅ **JWT Authentication** - Secure user authentication with 7-day tokens
@@ -48,10 +52,14 @@ CRMFlow is a complete, production-ready visual workflow builder that enables you
 ### User Experience
 - ✅ **Dark Theme** - Modern, eye-friendly dark UI throughout
 - ✅ **Toast Notifications** - User-friendly feedback for all actions
-- ✅ **Loading States** - All async operations show loading indicators
+- ✅ **Loading Skeleton Screens** - Shimmer animations during data loading
 - ✅ **Error Boundaries** - Graceful error handling prevents app crashes
 - ✅ **Responsive Design** - Works on desktop and mobile devices
 - ✅ **Search & Filter** - Find workflows and templates quickly
+- ✅ **Smooth Animations** - Page transitions, modal animations, hover effects
+- ✅ **Intelligent Error Messages** - User-friendly error messages with suggested actions
+- ✅ **Keyboard Shortcuts** - Full keyboard navigation (Ctrl+C/V/Z, Delete, etc.)
+- ✅ **Shortcuts Guide** - Press "?" to view all keyboard shortcuts
 
 ## 🏁 Quick Start
 
@@ -272,7 +280,8 @@ CRMFlow/
 - ✅ **Database indexes** on frequently queried fields
 - ✅ **Streaming responses** for large AI outputs
 - ✅ **React.memo** for expensive component optimization
-- ✅ **Code splitting** with lazy loading (coming soon)
+- ✅ **Skeleton loading** improves perceived performance
+- ✅ **Optimized animations** with cubic-bezier easing
 - ✅ **Socket.IO connection pooling**
 
 ## 🚀 Development Scripts
@@ -341,8 +350,10 @@ For issues, questions, or feature requests, please open an issue on GitHub.
 
 <div align="center">
 
-**Status:** Production-Ready • **Tasks Completed:** 340/500 (68%)
+**Status:** Production-Ready • **Tasks Completed:** 400/500 (80%)
 
 Made with TypeScript, React, Socket.IO, and Gemini AI
+
+**Latest Updates:** UI/UX Enhancements, Copy/Paste, Undo/Redo, Keyboard Shortcuts
 
 </div>
