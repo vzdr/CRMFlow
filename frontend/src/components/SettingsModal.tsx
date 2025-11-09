@@ -1,7 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSettingsStore } from '@/lib/stores/settingsStore'
+import { getApiKeys, saveApiKeys, clearApiKeys, ApiKeys } from '@/lib/apiKeyStore'
 
 interface SettingsModalProps {
   isOpen?: boolean
@@ -23,6 +24,16 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const modalOpen = isOpen !== undefined ? isOpen : settingsModalOpen
   const handleClose = onClose || closeSettingsModal
 
+  // API Key Management
+  const [activeTab, setActiveTab] = useState<'general' | 'gemini' | 'twilio' | 'elevenlabs'>('general')
+  const [apiKeys, setApiKeysState] = useState<ApiKeys>({})
+  const [showSuccess, setShowSuccess] = useState(false)
+
+  // Load API keys on mount
+  useEffect(() => {
+    setApiKeysState(getApiKeys())
+  }, [modalOpen])
+
   const handleMockModeToggle = (enabled: boolean) => {
     setUseMocks(enabled)
     console.log(`🎭 Mock mode ${enabled ? 'enabled' : 'disabled'}`)
@@ -38,6 +49,20 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       localStorage.removeItem('crmflow-studio-state')
       alert('Cache cleared! The page will reload.')
       window.location.reload()
+    }
+  }
+
+  const handleSaveApiKeys = () => {
+    saveApiKeys(apiKeys)
+    setShowSuccess(true)
+    setTimeout(() => setShowSuccess(false), 3000)
+  }
+
+  const handleClearApiKeys = () => {
+    if (confirm('Clear all API keys? This cannot be undone.')) {
+      clearApiKeys()
+      setApiKeysState({})
+      setShowSuccess(false)
     }
   }
 
@@ -74,8 +99,53 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </button>
           </div>
 
+          {/* Tabs */}
+          <div className="flex border-b border-gray-700">
+            <button
+              onClick={() => setActiveTab('general')}
+              className={`px-6 py-3 text-sm font-medium transition-colors ${
+                activeTab === 'general'
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              General
+            </button>
+            <button
+              onClick={() => setActiveTab('gemini')}
+              className={`px-6 py-3 text-sm font-medium transition-colors ${
+                activeTab === 'gemini'
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Gemini AI
+            </button>
+            <button
+              onClick={() => setActiveTab('twilio')}
+              className={`px-6 py-3 text-sm font-medium transition-colors ${
+                activeTab === 'twilio'
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Twilio
+            </button>
+            <button
+              onClick={() => setActiveTab('elevenlabs')}
+              className={`px-6 py-3 text-sm font-medium transition-colors ${
+                activeTab === 'elevenlabs'
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              ElevenLabs
+            </button>
+          </div>
+
           {/* Content */}
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">{activeTab === 'general' && (
+            <>
             {/* Mock Mode Section */}
             <div>
               <h3 className="text-lg font-medium text-white mb-4">Execution Mode</h3>
@@ -206,22 +276,173 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <ul className="list-disc list-inside space-y-1 text-blue-300">
                     <li>Mock mode uses simulated data for all API calls</li>
                     <li>Perfect for development and testing without API costs</li>
-                    <li>To use production mode, configure API keys in .env.local</li>
+                    <li>To use production mode, configure API keys in the API tabs</li>
                     <li>Settings are saved to browser localStorage</li>
                   </ul>
                 </div>
               </div>
             </div>
+            </>
+            )}
+
+            {/* Gemini Tab */}
+            {activeTab === 'gemini' && (
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-900 bg-opacity-30 border border-blue-700 rounded-md">
+                  <p className="text-sm text-blue-200">
+                    Configure your Gemini API key to enable AI-powered features.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={apiKeys.gemini || ''}
+                    onChange={(e) => setApiKeysState({ ...apiKeys, gemini: e.target.value })}
+                    placeholder="Enter your Gemini API key"
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Twilio Tab */}
+            {activeTab === 'twilio' && (
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-900 bg-opacity-30 border border-blue-700 rounded-md">
+                  <p className="text-sm text-blue-200">
+                    Configure your Twilio credentials to enable phone and SMS features.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Account SID
+                  </label>
+                  <input
+                    type="text"
+                    value={apiKeys.twilio?.accountSid || ''}
+                    onChange={(e) => setApiKeysState({
+                      ...apiKeys,
+                      twilio: { ...apiKeys.twilio, accountSid: e.target.value }
+                    })}
+                    placeholder="Enter your Twilio Account SID"
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Auth Token
+                  </label>
+                  <input
+                    type="password"
+                    value={apiKeys.twilio?.authToken || ''}
+                    onChange={(e) => setApiKeysState({
+                      ...apiKeys,
+                      twilio: { ...apiKeys.twilio, authToken: e.target.value }
+                    })}
+                    placeholder="Enter your Twilio Auth Token"
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    value={apiKeys.twilio?.phoneNumber || ''}
+                    onChange={(e) => setApiKeysState({
+                      ...apiKeys,
+                      twilio: { ...apiKeys.twilio, phoneNumber: e.target.value }
+                    })}
+                    placeholder="+1234567890"
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ElevenLabs Tab */}
+            {activeTab === 'elevenlabs' && (
+              <div className="space-y-4">
+                <div className="p-4 bg-blue-900 bg-opacity-30 border border-blue-700 rounded-md">
+                  <p className="text-sm text-blue-200">
+                    Configure your ElevenLabs credentials to enable text-to-speech features.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={apiKeys.elevenlabs?.apiKey || ''}
+                    onChange={(e) => setApiKeysState({
+                      ...apiKeys,
+                      elevenlabs: { ...apiKeys.elevenlabs, apiKey: e.target.value }
+                    })}
+                    placeholder="Enter your ElevenLabs API key"
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Voice ID
+                  </label>
+                  <input
+                    type="text"
+                    value={apiKeys.elevenlabs?.voiceId || ''}
+                    onChange={(e) => setApiKeysState({
+                      ...apiKeys,
+                      elevenlabs: { ...apiKeys.elevenlabs, voiceId: e.target.value }
+                    })}
+                    placeholder="Enter voice ID (e.g., 21m00Tcm4TlvDq8ikWAM)"
+                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-700">
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Done
-            </button>
+          <div className="flex items-center justify-between p-6 border-t border-gray-700">
+            {/* Success Message */}
+            {showSuccess && activeTab !== 'general' && (
+              <div className="flex items-center space-x-2 text-green-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-sm font-medium">API keys saved successfully!</span>
+              </div>
+            )}
+            {!showSuccess && activeTab !== 'general' && <div></div>}
+
+            <div className="flex items-center space-x-3">
+              {activeTab !== 'general' && (
+                <>
+                  <button
+                    onClick={handleClearApiKeys}
+                    className="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-700 rounded-md hover:bg-gray-700 hover:text-white transition-colors"
+                  >
+                    Clear All
+                  </button>
+                  <button
+                    onClick={handleSaveApiKeys}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
+                  >
+                    Save
+                  </button>
+                </>
+              )}
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                {activeTab === 'general' ? 'Done' : 'Close'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

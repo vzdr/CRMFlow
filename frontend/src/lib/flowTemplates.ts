@@ -499,11 +499,239 @@ export const qlayCandidateScreenerTemplate: FlowTemplate = {
 }
 
 /**
+ * Pizza Ordering Template
+ *
+ * Flow: Inbound Call → Greeting → Capture Order → Confirm Order →
+ *       Capture Address → Confirm Address → Payment → Final Confirmation
+ */
+export const pizzaOrderingTemplate: FlowTemplate = {
+  id: 'pizza-ordering',
+  name: 'Pizza Ordering System',
+  description:
+    'Automated pizza ordering system with voice interaction. Captures order details, delivery address, and provides order confirmation.',
+  category: 'Food & Beverage',
+  nodes: [
+    // 1. Inbound Call Trigger
+    {
+      id: 'node-1',
+      type: 'custom',
+      position: { x: 50, y: 50 },
+      data: {
+        label: 'Incoming Order Call',
+        nodeType: 'inbound-call',
+        config: {
+          label: 'Incoming Order Call',
+          description: 'Customer calls to place pizza order',
+          phoneNumber: '+1-555-PIZZA-01',
+        },
+      },
+    },
+
+    // 2. Greeting
+    {
+      id: 'node-2',
+      type: 'custom',
+      position: { x: 50, y: 170 },
+      data: {
+        label: 'Welcome Greeting',
+        nodeType: 'speak-text',
+        config: {
+          label: 'Welcome Greeting',
+          description: 'Greet customer and start order',
+          text: "Hello! Thank you for calling Tony's Pizza. I'm your AI ordering assistant. I'm ready to take your order! What would you like to order today?",
+          voiceId: '21m00Tcm4TlvDq8ikWAM',
+          stability: 0.6,
+          similarityBoost: 0.75,
+        },
+      },
+    },
+
+    // 3. Capture Order Details
+    {
+      id: 'node-3',
+      type: 'custom',
+      position: { x: 50, y: 310 },
+      data: {
+        label: 'Capture Order',
+        nodeType: 'listen-understand',
+        config: {
+          label: 'Capture Order',
+          description: 'Listen to customer order (size, toppings, quantity)',
+          inputMode: 'voice',
+          language: 'en-US',
+          maxDuration: 60,
+          promptTemplate:
+            'Extract the pizza order details. Return JSON with { "size": "small/medium/large", "toppings": ["pepperoni", "cheese", etc], "quantity": number, "specialInstructions": "..." }',
+        },
+      },
+    },
+
+    // 4. Confirm Order
+    {
+      id: 'node-4',
+      type: 'custom',
+      position: { x: 50, y: 450 },
+      data: {
+        label: 'Confirm Order',
+        nodeType: 'speak-text',
+        config: {
+          label: 'Confirm Order',
+          description: 'Read back the order to customer',
+          text: "Perfect! Let me confirm your order: You'd like a large pepperoni pizza with extra cheese. Is that correct?",
+          voiceId: '21m00Tcm4TlvDq8ikWAM',
+          stability: 0.5,
+          similarityBoost: 0.75,
+        },
+      },
+    },
+
+    // 5. Capture Delivery Address
+    {
+      id: 'node-5',
+      type: 'custom',
+      position: { x: 50, y: 590 },
+      data: {
+        label: 'Get Delivery Address',
+        nodeType: 'listen-understand',
+        config: {
+          label: 'Get Delivery Address',
+          description: 'Capture delivery address from customer',
+          inputMode: 'voice',
+          language: 'en-US',
+          maxDuration: 45,
+          promptTemplate:
+            'Extract the delivery address. Return JSON with { "street": "...", "city": "...", "zipCode": "...", "apartmentNumber": "..." }',
+        },
+      },
+    },
+
+    // 6. Confirm Address
+    {
+      id: 'node-6',
+      type: 'custom',
+      position: { x: 50, y: 730 },
+      data: {
+        label: 'Confirm Address',
+        nodeType: 'speak-text',
+        config: {
+          label: 'Confirm Address',
+          description: 'Repeat address for confirmation',
+          text: "Great! I have your delivery address as 123 Main Street, Apartment 4B. Is that correct?",
+          voiceId: '21m00Tcm4TlvDq8ikWAM',
+          stability: 0.5,
+          similarityBoost: 0.75,
+        },
+      },
+    },
+
+    // 7. Get Customer Name and Phone
+    {
+      id: 'node-7',
+      type: 'custom',
+      position: { x: 50, y: 870 },
+      data: {
+        label: 'Get Contact Info',
+        nodeType: 'listen-understand',
+        config: {
+          label: 'Get Contact Info',
+          description: 'Capture customer name and phone for delivery',
+          inputMode: 'voice',
+          language: 'en-US',
+          maxDuration: 30,
+          promptTemplate:
+            'Extract customer contact information. Return JSON with { "name": "...", "phone": "..." }',
+        },
+      },
+    },
+
+    // 8. Payment Method
+    {
+      id: 'node-8',
+      type: 'custom',
+      position: { x: 50, y: 1010 },
+      data: {
+        label: 'Payment Method',
+        nodeType: 'speak-text',
+        config: {
+          label: 'Payment Method',
+          description: 'Ask for payment preference',
+          text: "Perfect! And how would you like to pay? We accept cash on delivery or card payment.",
+          voiceId: '21m00Tcm4TlvDq8ikWAM',
+          stability: 0.5,
+          similarityBoost: 0.75,
+        },
+      },
+    },
+
+    // 9. Capture Payment Choice
+    {
+      id: 'node-9',
+      type: 'custom',
+      position: { x: 50, y: 1150 },
+      data: {
+        label: 'Get Payment Method',
+        nodeType: 'listen-understand',
+        config: {
+          label: 'Get Payment Method',
+          description: 'Capture payment preference',
+          inputMode: 'voice',
+          language: 'en-US',
+          maxDuration: 20,
+          promptTemplate:
+            'Extract payment method. Return JSON with { "paymentMethod": "cash/card" }',
+        },
+      },
+    },
+
+    // 10. Final Confirmation
+    {
+      id: 'node-10',
+      type: 'custom',
+      position: { x: 50, y: 1290 },
+      data: {
+        label: 'Order Confirmation',
+        nodeType: 'speak-text',
+        config: {
+          label: 'Order Confirmation',
+          description: 'Provide final order confirmation with ETA',
+          text: "Excellent! Your order has been confirmed. Your large pepperoni pizza with extra cheese will be delivered to 123 Main Street in approximately 30 to 40 minutes. Your order total is $18.99. Thank you for choosing Tony's Pizza!",
+          voiceId: '21m00Tcm4TlvDq8ikWAM',
+          stability: 0.6,
+          similarityBoost: 0.8,
+        },
+      },
+    },
+  ],
+
+  edges: [
+    // Incoming Call → Greeting
+    { id: 'edge-1', source: 'node-1', target: 'node-2', sourceHandle: 'callerId', targetHandle: null },
+    // Greeting → Capture Order
+    { id: 'edge-2', source: 'node-2', target: 'node-3', sourceHandle: 'audio', targetHandle: null },
+    // Capture Order → Confirm Order
+    { id: 'edge-3', source: 'node-3', target: 'node-4', sourceHandle: 'entities', targetHandle: null },
+    // Confirm Order → Get Address
+    { id: 'edge-4', source: 'node-4', target: 'node-5', sourceHandle: 'audio', targetHandle: null },
+    // Get Address → Confirm Address
+    { id: 'edge-5', source: 'node-5', target: 'node-6', sourceHandle: 'entities', targetHandle: null },
+    // Confirm Address → Get Contact Info
+    { id: 'edge-6', source: 'node-6', target: 'node-7', sourceHandle: 'audio', targetHandle: null },
+    // Get Contact Info → Payment Method
+    { id: 'edge-7', source: 'node-7', target: 'node-8', sourceHandle: 'entities', targetHandle: null },
+    // Payment Method → Get Payment
+    { id: 'edge-8', source: 'node-8', target: 'node-9', sourceHandle: 'audio', targetHandle: null },
+    // Get Payment → Final Confirmation
+    { id: 'edge-9', source: 'node-9', target: 'node-10', sourceHandle: 'entities', targetHandle: null },
+  ],
+}
+
+/**
  * All available templates
  */
 export const flowTemplates: FlowTemplate[] = [
   sapSalesQualifierTemplate,
   qlayCandidateScreenerTemplate,
+  pizzaOrderingTemplate,
 ]
 
 /**
