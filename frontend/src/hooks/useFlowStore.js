@@ -8,6 +8,8 @@ const useFlowStore = create((set, get) => ({
   activeNodeId: null,
   completedNodeIds: [], // Track which nodes have been executed
   executionMode: 'auto', // 'auto' = auto-advance (Run Workflow), 'manual' = wait for user (Live Test)
+  selectedNodeIds: [], // Track selected nodes for copy/paste/delete
+  copiedNodes: null, // Store copied node data
 
   // Node management functions
   addNode: (node) => {
@@ -137,6 +139,83 @@ const useFlowStore = create((set, get) => ({
       activeNodeId: null,
       completedNodeIds: []
     });
+  },
+
+  // Selection management
+  toggleNodeSelection: (nodeId, isShiftKey = false) => {
+    set((state) => {
+      if (isShiftKey) {
+        // Shift+Click: toggle selection
+        const isSelected = state.selectedNodeIds.includes(nodeId);
+        return {
+          selectedNodeIds: isSelected
+            ? state.selectedNodeIds.filter(id => id !== nodeId)
+            : [...state.selectedNodeIds, nodeId]
+        };
+      } else {
+        // Regular click: select only this node
+        return { selectedNodeIds: [nodeId] };
+      }
+    });
+  },
+
+  clearSelection: () => {
+    set({ selectedNodeIds: [] });
+  },
+
+  // Copy/Paste functionality
+  copyNodes: () => {
+    const { nodes, selectedNodeIds } = get();
+    if (selectedNodeIds.length === 0) return;
+
+    // Get selected nodes data
+    const nodesToCopy = nodes
+      .filter(node => selectedNodeIds.includes(node.id))
+      .map(node => ({
+        label: node.label,
+        type: node.type,
+        position: node.position,
+        data: node.data
+      }));
+
+    set({ copiedNodes: nodesToCopy });
+  },
+
+  pasteNodes: () => {
+    const { copiedNodes, nodes } = get();
+    if (!copiedNodes || copiedNodes.length === 0) return;
+
+    // Create new nodes with offset positions and new IDs
+    const offset = { x: 50, y: 50 };
+    const newNodes = copiedNodes.map((copiedNode) => ({
+      id: `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      label: copiedNode.label + ' (Copy)',
+      type: copiedNode.type,
+      position: {
+        x: copiedNode.position.x + offset.x,
+        y: copiedNode.position.y + offset.y
+      },
+      data: copiedNode.data
+    }));
+
+    set((state) => ({
+      nodes: [...state.nodes, ...newNodes],
+      selectedNodeIds: newNodes.map(n => n.id) // Select the newly pasted nodes
+    }));
+  },
+
+  deleteSelectedNodes: () => {
+    const { selectedNodeIds } = get();
+    if (selectedNodeIds.length === 0) return;
+
+    set((state) => ({
+      nodes: state.nodes.filter(node => !selectedNodeIds.includes(node.id)),
+      edges: state.edges.filter(edge =>
+        !selectedNodeIds.includes(edge.sourceNodeId) &&
+        !selectedNodeIds.includes(edge.targetNodeId)
+      ),
+      selectedNodeIds: []
+    }));
   }
 }));
 

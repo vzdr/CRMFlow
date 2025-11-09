@@ -106,3 +106,17 @@
   background: #5fb3ff;
   border-color: #4a9eff;
 }
+
+/* SELECTED NODE - User has selected for copy/paste */
+.canvas-node.selected {
+  border: 3px solid #ff9500;
+  box-shadow: 0 0 20px rgba(255, 149, 0, 0.5), 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.canvas-node.selected:hover {
+  box-shadow: 0 0 25px rgba(255, 149, 0, 0.7), 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+.canvas-node.selected .node-label {
+  color: #ff9500;
+}

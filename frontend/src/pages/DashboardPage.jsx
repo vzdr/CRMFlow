@@ -125,9 +125,21 @@ const DashboardPage = () => {
 
         {/* Workflows Grid */}
         {loading ? (
-          <div className="loading-state">
-            <div className="spinner"></div>
-            <p>Loading workflows...</p>
+          <div className="workflows-grid">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="workflow-card skeleton-card">
+                <div className="card-header">
+                  <div className="skeleton skeleton-title"></div>
+                </div>
+                <div className="card-stats">
+                  <div className="skeleton skeleton-text" style={{width: '60px'}}></div>
+                  <div className="skeleton skeleton-text" style={{width: '60px'}}></div>
+                </div>
+                <div className="card-footer">
+                  <div className="skeleton skeleton-text" style={{width: '120px'}}></div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredWorkflows.length === 0 ? (
           <div className="empty-state">

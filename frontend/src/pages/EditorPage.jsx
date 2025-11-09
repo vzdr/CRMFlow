@@ -17,7 +17,22 @@ import '../App.css';
 function EditorPage() {
   const { workflowId } = useParams();
   const navigate = useNavigate();
-  const { nodes, edges, addEdge, startWorkflow, stopWorkflow, isRunning, setWorkflow, activeNodeId, completedNodeIds } = useFlowStore();
+  const {
+    nodes,
+    edges,
+    addEdge,
+    startWorkflow,
+    stopWorkflow,
+    isRunning,
+    setWorkflow,
+    activeNodeId,
+    completedNodeIds,
+    selectedNodeIds,
+    copyNodes,
+    pasteNodes,
+    deleteSelectedNodes,
+    clearSelection
+  } = useFlowStore();
 
   // Loading state
   const [isLoading, setIsLoading] = useState(true);
@@ -44,6 +59,48 @@ function EditorPage() {
 
   // Auto-save on workflow changes using custom hook (1-second debounce)
   useAutoSave(saveWorkflow, [nodes, edges, workflowName], 1000, !isLoading && nodes.length > 0);
+
+  // Keyboard shortcuts for copy/paste/delete
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore if typing in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Ctrl+C or Cmd+C: Copy selected nodes
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        copyNodes();
+        if (selectedNodeIds.length > 0) {
+          toast.success(`Copied ${selectedNodeIds.length} node(s)`);
+        }
+      }
+
+      // Ctrl+V or Cmd+V: Paste nodes
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        pasteNodes();
+      }
+
+      // Delete or Backspace: Delete selected nodes
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        if (selectedNodeIds.length > 0) {
+          deleteSelectedNodes();
+          toast.success(`Deleted ${selectedNodeIds.length} node(s)`);
+        }
+      }
+
+      // Escape: Clear selection
+      if (e.key === 'Escape') {
+        clearSelection();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNodeIds, copyNodes, pasteNodes, deleteSelectedNodes, clearSelection]);
 
   const loadWorkflow = async () => {
     try {

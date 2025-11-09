@@ -11,9 +11,10 @@ const CanvasNode = ({
   onInputHandleMouseUp
 }) => {
   const nodeRef = useRef(null);
-  const { activeNodeId, completedNodeIds } = useFlowStore();
+  const { activeNodeId, completedNodeIds, selectedNodeIds, toggleNodeSelection } = useFlowStore();
   const isActive = activeNodeId === node.id;
   const isCompleted = completedNodeIds.includes(node.id);
+  const isSelected = selectedNodeIds.includes(node.id);
 
   // Determine node state class
   let stateClass = 'pending';
@@ -26,6 +27,11 @@ const CanvasNode = ({
   const handleMouseDown = (e) => {
     // Only start drag if clicking on the node body, not handles
     if (e.target.dataset.handleType) return;
+
+    // Handle node selection with Shift key
+    toggleNodeSelection(node.id, e.shiftKey);
+
+    // Start drag
     onDragStart && onDragStart(node.id, e);
   };
 
@@ -42,7 +48,7 @@ const CanvasNode = ({
   return (
     <div
       ref={nodeRef}
-      className={`canvas-node ${stateClass}`}
+      className={`canvas-node ${stateClass} ${isSelected ? 'selected' : ''}`}
       style={{
         left: node.position.x,
         top: node.position.y
