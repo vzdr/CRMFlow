@@ -6,6 +6,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import apiRoutes from './api';
 import { errorHandler } from './middleware/errorHandler';
 import { prisma } from './config/prisma';
+import { ExecutionManager } from './services/execution.manager';
 
 // Load environment variables
 dotenv.config();
@@ -21,6 +22,9 @@ const io = new SocketIOServer(httpServer, {
     credentials: true
   }
 });
+
+// Initialize ExecutionManager for real-time workflow execution
+new ExecutionManager(io);
 
 // Middleware
 app.use(cors({
@@ -41,20 +45,6 @@ if (process.env.NODE_ENV === 'development') {
 
 // API Routes
 app.use('/api', apiRoutes);
-
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
-
-  socket.on('disconnect', () => {
-    console.log(`Client disconnected: ${socket.id}`);
-  });
-
-  // Basic echo for testing
-  socket.on('ping', () => {
-    socket.emit('pong');
-  });
-});
 
 // Error handler (must be last)
 app.use(errorHandler);
