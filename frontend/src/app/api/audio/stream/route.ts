@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
       if (audioData) {
         const buffer = Buffer.from(audioData, 'base64')
-        session.audioChunks.push(buffer)
+        session.audioChunks.push(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength))
 
         // Process audio chunk (send to Gemini for transcription)
         try {
