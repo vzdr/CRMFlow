@@ -13,9 +13,10 @@ const Canvas = ({
   draftEdge
 }) => {
   const canvasRef = useRef(null);
-  const { nodes, edges, updateNodePosition } = useFlowStore();
+  const { nodes, edges, updateNodePosition, toggleNodeSelection, clearSelection, selectedNodeIds } = useFlowStore();
   const [draggingNode, setDraggingNode] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [selectionBox, setSelectionBox] = useState(null);
 
   const handleNodeDragStart = (nodeId, e) => {
     const node = nodes.find(n => n.id === nodeId);
@@ -40,6 +41,35 @@ const Canvas = ({
       };
       updateNodePosition(draggingNode, newPosition);
     }
+
+    // Update selection box if active
+    if (selectionBox) {
+      const canvasBounds = canvasRef.current.getBoundingClientRect();
+      setSelectionBox({
+        ...selectionBox,
+        endX: e.clientX - canvasBounds.left,
+        endY: e.clientY - canvasBounds.top
+      });
+    }
+  };
+
+  const handleCanvasMouseDown = (e) => {
+    // Only start selection if clicking directly on canvas (not on nodes or handles)
+    if (e.target.className === 'canvas' || e.target.tagName === 'svg' || e.target.className === 'nodes-layer') {
+      // Start selection box
+      const canvasBounds = canvasRef.current.getBoundingClientRect();
+      setSelectionBox({
+        startX: e.clientX - canvasBounds.left,
+        startY: e.clientY - canvasBounds.top,
+        endX: e.clientX - canvasBounds.left,
+        endY: e.clientY - canvasBounds.top
+      });
+
+      // Clear existing selection if not holding shift
+      if (!e.shiftKey) {
+        clearSelection();
+      }
+    }
   };
 
   const handleCanvasMouseUp = (e) => {
@@ -48,12 +78,44 @@ const Canvas = ({
 
     // End node dragging
     setDraggingNode(null);
+
+    // Complete selection if active
+    if (selectionBox) {
+      const { startX, startY, endX, endY } = selectionBox;
+
+      // Calculate selection rectangle
+      const left = Math.min(startX, endX);
+      const top = Math.min(startY, endY);
+      const right = Math.max(startX, endX);
+      const bottom = Math.max(startY, endY);
+
+      // Only select if box is large enough (prevent accidental selections)
+      if (Math.abs(right - left) > 5 && Math.abs(bottom - top) > 5) {
+        // Find nodes within selection
+        nodes.forEach(node => {
+          const nodeLeft = node.position.x;
+          const nodeTop = node.position.y;
+          const nodeRight = nodeLeft + 200; // Approximate node width
+          const nodeBottom = nodeTop + 70; // Approximate node height
+
+          // Check if node overlaps with selection box
+          const overlaps = !(nodeRight < left || nodeLeft > right || nodeBottom < top || nodeTop > bottom);
+
+          if (overlaps && !selectedNodeIds.includes(node.id)) {
+            toggleNodeSelection(node.id, true); // Add to selection
+          }
+        });
+      }
+
+      setSelectionBox(null);
+    }
   };
 
   return (
     <div
       ref={canvasRef}
       className="canvas"
+      onMouseDown={handleCanvasMouseDown}
       onMouseMove={handleCanvasMouseMove}
       onMouseUp={handleCanvasMouseUp}
     >
@@ -115,6 +177,27 @@ const Canvas = ({
           );
         })}
       </div>
+
+      {/* Selection Box */}
+      {selectionBox && (() => {
+        const { startX, startY, endX, endY } = selectionBox;
+        const left = Math.min(startX, endX);
+        const top = Math.min(startY, endY);
+        const width = Math.abs(endX - startX);
+        const height = Math.abs(endY - startY);
+
+        return (
+          <div
+            className="selection-box"
+            style={{
+              left: `${left}px`,
+              top: `${top}px`,
+              width: `${width}px`,
+              height: `${height}px`
+            }}
+          />
+        );
+      })()}
     </div>
   );
 };
